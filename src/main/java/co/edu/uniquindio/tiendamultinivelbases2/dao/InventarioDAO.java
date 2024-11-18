@@ -52,14 +52,14 @@ public class InventarioDAO {
     }
 
     // Método para insertar un nuevo registro en el inventario
-    public boolean insertarInventario(Inventario inventario) {
+    public boolean insertarInventario(int libroId, int cantidad) {
         String sql = "INSERT INTO inventario (libro_id, cantidad) VALUES (?, ?)";
 
         try (Connection conn = DataBaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setInt(1, inventario.getLibroId());
-            stmt.setInt(2, inventario.getExistencia());
+            stmt.setInt(1, libroId);
+            stmt.setInt(2, cantidad);
 
             int filasAfectadas = stmt.executeUpdate();
             return filasAfectadas > 0;

@@ -108,4 +108,29 @@ public class PedidoDAO {
         }
         return pedidosPendientes;
     }
+
+    public List<Pedido> obtenerTodosLosPedidos() {
+        List<Pedido> pedidosPendientes = new ArrayList<>();
+        String sql = "SELECT * FROM Pedido";
+
+        try (Connection conn = DataBaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                int pedidoId = rs.getInt("pedido_id");
+                String fechaPedido = rs.getString("fecha_pedido");
+                String fechaEntrega = rs.getString("fecha_entrega");
+                int proveedorId = rs.getInt("proveedor_id");
+                String estado = rs.getString("estado");
+                double total = rs.getDouble("total");
+
+                pedidosPendientes.add(new Pedido(pedidoId, fechaPedido, fechaEntrega, proveedorId, estado, total));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return pedidosPendientes;
+    }
 }

@@ -154,5 +154,24 @@ public class VentaDAO {
         }
         return false;
     }
+    public double obtenerTotalVentasPorVendedor(int vendedorId) {
+        double totalVentas = 0.0;
 
+        String query = "SELECT SUM(v.precio_total) AS total FROM Venta v " +
+                "WHERE v.vendedor_id = ? AND v.estado = 'Completada'"; // Asegúrate de usar el estado correcto
+
+        try (Connection conn = DataBaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, vendedorId); // Establecemos el vendedor_id en la consulta
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    totalVentas = rs.getDouble("total");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace(); // Aquí debes manejar excepciones de forma adecuada
+        }
+
+        return totalVentas;
+    }
 }

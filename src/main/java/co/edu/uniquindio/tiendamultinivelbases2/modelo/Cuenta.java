@@ -12,6 +12,15 @@ public class Cuenta {
     public Cuenta() {
     }
 
+    public Cuenta(String usuario, String contrasenia, String fechaCreacion, int personaId, String estado, String tipoUsuario) {
+        this.usuario = usuario;
+        this.contrasenia = contrasenia;
+        this.fechaCreacion = fechaCreacion;
+        this.personaId = personaId;
+        this.estado = estado;
+        this.tipoUsuario = tipoUsuario;
+    }
+
     public String getUsuario() {
         return usuario;
     }

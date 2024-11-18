@@ -38,6 +38,33 @@ public class ClienteDAO {
         return clientes;
     }
 
+    public List<Cliente> obtenerClientesActivos() {
+        List<Cliente> clientes = new ArrayList<>();
+        String sql = "SELECT * FROM Cliente where estado = 'activo'";
+
+        try (Connection conn = DataBaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                int clienteId = rs.getInt("cliente_id");
+                String nombre = rs.getString("nombre");
+                String apellido = rs.getString("apellido");
+                String direccion = rs.getString("direccion");
+                String email = rs.getString("email");
+                String telefono = rs.getString("telefono");
+                Date fechaNacimiento = rs.getDate("fecha_nacimiento");
+                String estado = rs.getString("estado");
+
+                clientes.add(new Cliente(clienteId, nombre, apellido, direccion, email, telefono, fechaNacimiento, estado));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return clientes;
+    }
+
     // Método para obtener un cliente por su ID
     public Cliente obtenerClientePorId(int clienteId) {
         String sql = "SELECT * FROM Cliente WHERE cliente_id = ?";

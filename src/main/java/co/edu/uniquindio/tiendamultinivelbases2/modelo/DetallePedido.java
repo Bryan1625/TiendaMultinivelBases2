@@ -9,6 +9,13 @@ public class DetallePedido {
     // Constructor vacío
     public DetallePedido() {}
 
+    public DetallePedido(int pedidoId, int libroId, int cantidad, double subtotal) {
+        this.pedidoId = pedidoId;
+        this.libroId = libroId;
+        this.cantidad = cantidad;
+        this.subtotal = subtotal;
+    }
+
     // Getters y Setters
     public int getPedidoId() {
         return pedidoId;

@@ -1,3 +1,26 @@
+CREATE OR REPLACE FUNCTION calcular_posicion_arbol(p_vendedor_id IN NUMBER)
+RETURN NUMBER IS
+    v_depth NUMBER := 0;
+BEGIN
+    -- Usamos CONNECT BY para calcular la profundidad en el árbol de jerarquía hacia arriba
+    SELECT MAX(LEVEL)  -- Usamos MAX para obtener el nivel más alto en la jerarquía
+    INTO v_depth
+    FROM vendedor
+    START WITH vendedor_id = p_vendedor_id  -- Empezamos con el vendedor especificado
+    CONNECT BY PRIOR jefe_id = vendedor_id; -- Recorremos hacia arriba a través del jefe
+
+    -- Retornamos la profundidad calculada
+    RETURN v_depth;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        -- Si no se encuentra el vendedor o no tiene jefe, retornamos 0
+        RETURN 0;
+    WHEN OTHERS THEN
+        -- Para cualquier otro error, retornamos NULL
+        RETURN NULL;
+END calcular_posicion_arbol;
+
 create or replace TRIGGER confirmar_venta
 BEFORE UPDATE OF estado ON Venta
 FOR EACH ROW
@@ -182,32 +205,36 @@ EXCEPTION
         RAISE_APPLICATION_ERROR(-20001, 'Error al insertar el libro: ' || SQLERRM);
 END insertar_libro;
 
-create or replace PROCEDURE insertar_nuevos_salarios IS
+CREATE OR REPLACE PROCEDURE insertar_nuevos_salarios IS
 BEGIN
     -- Insertar los nuevos salarios para el siguiente mes solo si no existen ya para ese mes
     FOR v IN (
-        SELECT 
-            vendedor_id, 
-            sueldo_base,  -- el salario base se mantiene igual
-            ADD_MONTHS(SYSDATE, 1) AS fecha_pago
-        FROM 
-            sueldo_vendedores
-        WHERE 
-            fecha_pago <= SYSDATE  -- Solo considera los sueldos con fecha de pago anterior o igual a la fecha actual
+        SELECT
+            v.vendedor_id,
+            sv.sueldo_base,  -- el salario base se mantiene igual
+            ADD_MONTHS(SYSDATE, 1) AS fecha_pago,
+            v.nivel,
+            calcular_posicion_arbol(v.vendedor_id) as posicion_arbol,
+            v.estado
+        FROM
+            sueldo_vendedores sv
+        JOIN vendedor v ON sv.vendedor_id = v.vendedor_id
+        WHERE
+            sv.fecha_pago <= SYSDATE  -- Solo considera los sueldos con fecha de pago anterior o igual a la fecha actual
         AND NOT EXISTS (
             -- Verificar si ya existe un sueldo registrado para el siguiente mes
             SELECT 1
-            FROM sueldo_vendedores sv
-            WHERE sv.vendedor_id = vendedor_id 
-            AND sv.fecha_pago = ADD_MONTHS(SYSDATE, 1)
+            FROM sueldo_vendedores sv2
+            WHERE sv2.vendedor_id = v.vendedor_id
+            AND sv2.fecha_pago = ADD_MONTHS(SYSDATE, 1)
         )
     ) LOOP
         -- Insertar el nuevo salario solo si no existe uno para el siguiente mes
-        INSERT INTO sueldo_vendedores (vendedor_id, sueldo_base, comisiones, fecha_pago)
-        VALUES (v.vendedor_id, v.sueldo_base, 0, v.fecha_pago);
+        INSERT INTO sueldo_vendedores (vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado)
+        VALUES (v.vendedor_id, v.sueldo_base, 0, v.fecha_pago, v.nivel, v.posicion_arbol, v.estado);
     END LOOP;
 
-    COMMIT;  -- Confirmar los cambios realizados
+    COMMIT;
 END insertar_nuevos_salarios;
 
 create or replace PROCEDURE registrar_comision_venta_proc(

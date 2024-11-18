@@ -1,0 +1,46 @@
+CREATE OR REPLACE VIEW vista_libros_cliente AS
+SELECT l.libro_id as id, l.titulo as titulo, l.autor as autor, l.precioventa as precio, i.existencia as stock
+FROM libro l join inventario i on l.libro_id = i.libro_id;
+
+CREATE OR REPLACE VIEW vista_inventario_vendedor AS
+SELECT l.libro_id as id, l.titulo as titulo, i.existencia as stock
+FROM libro l join inventario i on l.libro_id = i.libro_id;
+
+CREATE OR REPLACE VIEW vista_estadisticas_vendedor AS
+SELECT vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol
+FROM sueldo_vendedores
+where fecha_pago = (select max(fecha_pago) from sueldo_vendedores);
+
+CREATE OR REPLACE VIEW vista_ventas AS
+SELECT 
+    v.venta_id, 
+    dv.cliente_id, 
+    v.fecha, 
+    dv.libro_id, 
+    dv.cantidad, 
+    v.total
+FROM 
+    venta v join detalle_venta dv on v.venta_id = dv.venta_id
+where v.estado = 'Completado';
+
+CREATE OR REPLACE VIEW vista_resumen_ventas_vendedor AS
+SELECT 
+    v.vendedor_id, 
+    v.nombre, 
+    COUNT(ve.libro_id) AS total_libros_vendidos, 
+    SUM(ve.cantidad * l.precioventa) AS total_ventas,
+    SUM(sv.comisiones) AS total_comisiones
+FROM 
+    vendedor v
+JOIN 
+    detalle_venta ve ON v.vendedor_id = ve.vendedor_id
+JOIN 
+    venta dv ON ve.venta_id = dv.venta_id
+JOIN 
+    libro l ON ve.libro_id = l.libro_id
+JOIN 
+    sueldo_vendedores sv ON v.vendedor_id = sv.vendedor_id
+WHERE 
+    dv.estado = 'Completado'
+GROUP BY 
+    v.vendedor_id, v.nombre;

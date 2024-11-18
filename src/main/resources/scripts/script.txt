@@ -331,8 +331,7 @@ GRANT SELECT, INSERT, UPDATE ON cliente TO cliente;
 GRANT SELECT, INSERT ON cuenta TO cliente;
 GRANT SELECT ON inventario TO cliente;
 GRANT SELECT, INSERT ON metodo_pago TO cliente;
-GRANT SELECT ON nivel TO cliente;
-GRANT SELECT, INSERT ON venta TO cliente;
+GRANT UPDATE (NUMERO_TARJETA, CONTRASENIA) on METODO_PAGO TO CLIENTE;
 
 -- Permisos para el rol vendedor
 GRANT SELECT, INSERT, UPDATE ON vendedor TO vendedor;

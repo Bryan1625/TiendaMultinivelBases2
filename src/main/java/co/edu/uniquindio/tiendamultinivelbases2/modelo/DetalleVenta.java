@@ -11,6 +11,15 @@ public class DetalleVenta {
     // Constructor vacío
     public DetalleVenta() {}
 
+    public DetalleVenta(int ventaId, int clienteId, int vendedorId, int libroId, int cantidad, double subtotal) {
+        this.ventaId = ventaId;
+        this.clienteId = clienteId;
+        this.vendedorId = vendedorId;
+        this.libroId = libroId;
+        this.cantidad = cantidad;
+        this.subtotal = subtotal;
+    }
+
     // Getters y Setters
     public int getVentaId() {
         return ventaId;

@@ -7,6 +7,11 @@ public class Inventario {
     // Constructor vacío
     public Inventario() {}
 
+    public Inventario(int libroId, int existencia) {
+        this.libroId = libroId;
+        this.existencia = existencia;
+    }
+
     // Getters y Setters
     public int getLibroId() {
         return libroId;

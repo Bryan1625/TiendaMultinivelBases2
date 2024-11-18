@@ -11,6 +11,15 @@ public class Pedido {
     // Constructor vacío
     public Pedido() {}
 
+    public Pedido(int pedidoId, String fechaPedido, String fechaEntrega, int proveedorId, String estado, double total) {
+        this.pedidoId = pedidoId;
+        this.fechaPedido = fechaPedido;
+        this.fechaEntrega = fechaEntrega;
+        this.proveedorId = proveedorId;
+        this.estado = estado;
+        this.total = total;
+    }
+
     // Getters y Setters
     public int getPedidoId() {
         return pedidoId;

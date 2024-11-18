@@ -1,5 +1,7 @@
 package co.edu.uniquindio.tiendamultinivelbases2.modelo;
 
+import java.sql.Date;
+
 public class Cliente {
     private int clienteId;
     private String nombre;
@@ -7,10 +9,21 @@ public class Cliente {
     private String direccion;
     private String email;
     private String telefono;
-    private String fechaNacimiento;
+    private Date fechaNacimiento;
     private String estado;
 
     public Cliente() {
+    }
+
+    public Cliente(int clienteId, String nombre, String apellido, String direccion, String email, String telefono, Date fechaNacimiento, String estado) {
+        this.clienteId = clienteId;
+        this.nombre = nombre;
+        this.apellido = apellido;
+        this.direccion = direccion;
+        this.email = email;
+        this.telefono = telefono;
+        this.fechaNacimiento = fechaNacimiento;
+        this.estado = estado;
     }
 
     public int getClienteId() {
@@ -61,11 +74,11 @@ public class Cliente {
         this.telefono = telefono;
     }
 
-    public String getFechaNacimiento() {
+    public Date getFechaNacimiento() {
         return fechaNacimiento;
     }
 
-    public void setFechaNacimiento(String fechaNacimiento) {
+    public void setFechaNacimiento(Date fechaNacimiento) {
         this.fechaNacimiento = fechaNacimiento;
     }
 

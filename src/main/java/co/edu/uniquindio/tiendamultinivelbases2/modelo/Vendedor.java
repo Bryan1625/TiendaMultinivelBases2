@@ -1,14 +1,25 @@
 package co.edu.uniquindio.tiendamultinivelbases2.modelo;
 
+import java.sql.Date;
+
 public class Vendedor {
     private int vendedorId;
     private String nombre;
-    private String fechaNacimiento;
+    private Date fechaNacimiento;
     private int jefeId;
     private String nivel;
     private String estado;
 
     public Vendedor() {
+    }
+
+    public Vendedor(int vendedorId, String nombre, Date fechaNacimiento, int jefeId, String nivel, String estado) {
+        this.vendedorId = vendedorId;
+        this.nombre = nombre;
+        this.fechaNacimiento = fechaNacimiento;
+        this.jefeId = jefeId;
+        this.nivel = nivel;
+        this.estado = estado;
     }
 
     public int getVendedorId() {
@@ -27,11 +38,11 @@ public class Vendedor {
         this.nombre = nombre;
     }
 
-    public String getFechaNacimiento() {
+    public Date getFechaNacimiento() {
         return fechaNacimiento;
     }
 
-    public void setFechaNacimiento(String fechaNacimiento) {
+    public void setFechaNacimiento(Date fechaNacimiento) {
         this.fechaNacimiento = fechaNacimiento;
     }
 

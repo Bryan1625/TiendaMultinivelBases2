@@ -8,6 +8,15 @@ public class Libro {
     private String categoria;
     private double precioCompra;
 
+    public Libro(int libroId, String titulo, String autor, double precioVenta, String categoria, double precioCompra) {
+        this.libroId = libroId;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.precioVenta = precioVenta;
+        this.categoria = categoria;
+        this.precioCompra = precioCompra;
+    }
+
     public int getLibroId() {
         return libroId;
     }

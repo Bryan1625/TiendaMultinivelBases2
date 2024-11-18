@@ -1,0 +1,1020 @@
+-- Creación de tablespaces
+CREATE TABLESPACE parametricas DATAFILE 'parametricas.dbf' SIZE 20M;
+CREATE TABLESPACE transacciones DATAFILE 'transacciones.dbf' SIZE 20M;
+CREATE TABLESPACE entidades DATAFILE 'entidades.dbf' SIZE 20M;
+CREATE TABLESPACE indices DATAFILE 'indices.dbf' SIZE 20M;
+
+CREATE TABLE cliente (
+    cliente_id       NUMBER(10) NOT NULL,
+    nombre           VARCHAR2(50) NOT NULL,
+    apellido         VARCHAR2(50),
+    direccion        VARCHAR2(100),
+    email            VARCHAR2(100),
+    telefono         VARCHAR2(15),
+    fecha_nacimiento DATE,
+    estado           VARCHAR2(8) NOT NULL
+);
+
+ALTER TABLE cliente ADD CONSTRAINT cliente_pk PRIMARY KEY ( cliente_id );
+
+CREATE TABLE comision_jerarquica (
+    nivel_id   NUMBER(10) NOT NULL,
+    porcentaje NUMBER(5, 2)
+);
+
+ALTER TABLE comision_jerarquica ADD CONSTRAINT comision_jerarquica_pk PRIMARY KEY ( nivel_id );
+
+CREATE TABLE cuenta (
+    usuario        VARCHAR2(20) NOT NULL,
+    contrasenia    VARCHAR2(30) NOT NULL,
+    fecha_creacion DATE,
+    persona_id     NUMBER(10) NOT NULL,
+    estado         VARCHAR2(8) NOT NULL,
+    tipo_usuario   VARCHAR2(10)
+);
+
+ALTER TABLE cuenta
+    ADD CHECK ( tipo_usuario IN ( 'admin', 'cliente', 'vendedor' ) );
+
+ALTER TABLE cuenta ADD CONSTRAINT cuenta_pk PRIMARY KEY ( usuario );
+
+CREATE TABLE detalle_pedido (
+    pedido_id NUMBER(13) NOT NULL,
+    libro_id  NUMBER(10) NOT NULL,
+    cantidad  NUMBER(3),
+    subtotal  NUMBER(8, 2)
+);
+
+CREATE TABLE detalle_venta (
+    venta_id    NUMBER(13) NOT NULL,
+    cliente_id  NUMBER(10) NOT NULL,
+    vendedor_id NUMBER(10) NOT NULL,
+    libro_id    NUMBER(10) NOT NULL,
+    cantidad    NUMBER(3),
+    subtotal    NUMBER(8, 2)
+);
+
+CREATE TABLE inventario (
+    libro_id   NUMBER(10) NOT NULL,
+    existencia NUMBER(4)
+);
+
+ALTER TABLE inventario ADD CONSTRAINT inventario_pk PRIMARY KEY ( libro_id );
+
+CREATE TABLE libro (
+    libro_id     NUMBER(10) NOT NULL,
+    titulo       VARCHAR2(100) NOT NULL,
+    autor        VARCHAR2(50),
+    precioventa  NUMBER(8, 2) NOT NULL,
+    categoria    VARCHAR2(50),
+    preciocompra NUMBER(8, 2) NOT NULL
+);
+
+ALTER TABLE libro ADD CONSTRAINT libro_pk PRIMARY KEY ( libro_id );
+
+CREATE TABLE metodo_pago (
+    metodo_pago_id NUMBER(10) NOT NULL,
+    numero_tarjeta VARCHAR2(19),
+    contrasenia    VARCHAR2(19),
+    persona_id     NUMBER(10) NOT NULL
+);
+
+ALTER TABLE metodo_pago ADD CONSTRAINT metodo_pago_pk PRIMARY KEY ( metodo_pago_id );
+
+CREATE TABLE nivel (
+    nombre         VARCHAR2(20) NOT NULL,
+    comision       NUMBER(5, 2) NOT NULL,
+    descuento      NUMBER(5, 2) NOT NULL,
+    ventas_minimas NUMBER(3)
+);
+
+ALTER TABLE nivel ADD CHECK ( descuento BETWEEN 0 AND 100 );
+
+ALTER TABLE nivel ADD CONSTRAINT nivel_pk PRIMARY KEY ( nombre );
+
+CREATE TABLE pago (
+    pago_id        NUMBER(15),
+    cantidad       NUMBER(10, 2),
+    metodo_pago_id NUMBER(10) NOT NULL,
+    venta_id       NUMBER(13) NOT NULL
+);
+
+CREATE TABLE pedido (
+    pedido_id     NUMBER(13) NOT NULL,
+    fecha_pedido  DATE,
+    fecha_entrega DATE,
+    proveedor_id  NUMBER(10) NOT NULL,
+    estado        VARCHAR2(20) NOT NULL,
+    total         NUMBER(10, 2)
+);
+
+ALTER TABLE pedido ADD CONSTRAINT pedido_pk PRIMARY KEY ( pedido_id );
+
+CREATE TABLE proveedor (
+    proveedor_id NUMBER(10) NOT NULL,
+    nombre       VARCHAR2(100) NOT NULL,
+    telefono     VARCHAR2(15),
+    email        VARCHAR2(100),
+    direccion    VARCHAR2(100)
+);
+
+ALTER TABLE proveedor ADD CONSTRAINT proveedor_pk PRIMARY KEY ( proveedor_id );
+
+CREATE TABLE sueldo_vendedores (
+    sueldo_id      NUMBER NOT NULL,
+    vendedor_id    NUMBER(10) NOT NULL,
+    sueldo_base    NUMBER(10, 2),
+    comisiones     NUMBER(10, 2),
+    fecha_pago     DATE,
+    nivel          VARCHAR2(20),
+    posicion_arbol VARCHAR2(100),
+    estado         VARCHAR2(20) DEFAULT 'pendiente'
+);
+
+ALTER TABLE sueldo_vendedores ADD CONSTRAINT sueldo_vendedores_pk PRIMARY KEY ( sueldo_id );
+
+CREATE TABLE vendedor (
+    vendedor_id      NUMBER(10) NOT NULL,
+    nombre           VARCHAR2(50) NOT NULL,
+    fecha_nacimiento DATE,
+    jefe_id          NUMBER(10),
+    nivel            VARCHAR2(50) NOT NULL,
+    estado           VARCHAR2(8) NOT NULL
+);
+
+ALTER TABLE vendedor ADD CONSTRAINT vendedor_pk PRIMARY KEY ( vendedor_id );
+
+CREATE TABLE venta (
+    venta_id NUMBER(13) NOT NULL,
+    fecha    DATE,
+    estado   VARCHAR2(20) NOT NULL,
+    total    NUMBER(10, 2)
+);
+
+ALTER TABLE venta ADD CONSTRAINT venta_pk PRIMARY KEY ( venta_id );
+
+ALTER TABLE cuenta
+    ADD CONSTRAINT cuenta_cliente_fk FOREIGN KEY ( persona_id )
+        REFERENCES cliente ( cliente_id );
+
+ALTER TABLE cuenta
+    ADD CONSTRAINT cuenta_vendedor_fk FOREIGN KEY ( persona_id )
+        REFERENCES vendedor ( vendedor_id );
+
+ALTER TABLE detalle_pedido
+    ADD CONSTRAINT detalle_pedido_libro_fk FOREIGN KEY ( libro_id )
+        REFERENCES libro ( libro_id );
+
+ALTER TABLE detalle_pedido
+    ADD CONSTRAINT detalle_pedido_pedido_fk FOREIGN KEY ( pedido_id )
+        REFERENCES pedido ( pedido_id );
+
+ALTER TABLE detalle_venta
+    ADD CONSTRAINT detalle_venta_cliente_fk FOREIGN KEY ( cliente_id )
+        REFERENCES cliente ( cliente_id );
+
+ALTER TABLE detalle_venta
+    ADD CONSTRAINT detalle_venta_libro_fk FOREIGN KEY ( libro_id )
+        REFERENCES libro ( libro_id );
+
+ALTER TABLE detalle_venta
+    ADD CONSTRAINT detalle_venta_vendedor_fk FOREIGN KEY ( vendedor_id )
+        REFERENCES vendedor ( vendedor_id );
+
+ALTER TABLE detalle_venta
+    ADD CONSTRAINT detalle_venta_venta_fk FOREIGN KEY ( venta_id )
+        REFERENCES venta ( venta_id );
+
+ALTER TABLE inventario
+    ADD CONSTRAINT inventario_libro_fk FOREIGN KEY ( libro_id )
+        REFERENCES libro ( libro_id );
+
+ALTER TABLE metodo_pago
+    ADD CONSTRAINT metodo_pago_cliente_fk FOREIGN KEY ( persona_id )
+        REFERENCES cliente ( cliente_id );
+
+ALTER TABLE metodo_pago
+    ADD CONSTRAINT metodo_pago_vendedor_fk FOREIGN KEY ( persona_id )
+        REFERENCES vendedor ( vendedor_id );
+
+ALTER TABLE pago
+    ADD CONSTRAINT pago_metodo_pago_fk FOREIGN KEY ( metodo_pago_id )
+        REFERENCES metodo_pago ( metodo_pago_id );
+
+ALTER TABLE pago
+    ADD CONSTRAINT pago_venta_fk FOREIGN KEY ( venta_id )
+        REFERENCES venta ( venta_id );
+
+ALTER TABLE pedido
+    ADD CONSTRAINT pedido_proveedor_fk FOREIGN KEY ( proveedor_id )
+        REFERENCES proveedor ( proveedor_id );
+
+ALTER TABLE sueldo_vendedores
+    ADD CONSTRAINT sueldo_vendedores_vendedor_fk FOREIGN KEY ( vendedor_id )
+        REFERENCES vendedor ( vendedor_id );
+
+ALTER TABLE vendedor
+    ADD CONSTRAINT vendedor_nivel_fk FOREIGN KEY ( nivel )
+        REFERENCES nivel ( nombre );
+
+ALTER TABLE vendedor
+    ADD CONSTRAINT vendedor_vendedor_fk FOREIGN KEY ( jefe_id )
+        REFERENCES vendedor ( vendedor_id );
+
+CREATE SEQUENCE metodo_pago_metodo_pago_id_seq START WITH 1 NOCACHE ORDER;
+
+CREATE OR REPLACE TRIGGER metodo_pago_metodo_pago_id_trg BEFORE
+    INSERT ON metodo_pago
+    FOR EACH ROW
+    WHEN ( new.metodo_pago_id IS NULL )
+BEGIN
+    :new.metodo_pago_id := metodo_pago_metodo_pago_id_seq.nextval;
+END;
+/
+
+CREATE SEQUENCE pago_pago_id_seq START WITH 1 NOCACHE ORDER;
+
+CREATE OR REPLACE TRIGGER pago_pago_id_trg BEFORE
+    INSERT ON pago
+    FOR EACH ROW
+    WHEN ( new.pago_id IS NULL )
+BEGIN
+    :new.pago_id := pago_pago_id_seq.nextval;
+END;
+/
+
+CREATE SEQUENCE sueldo_vendedores_sueldo_id START WITH 1 NOCACHE ORDER;
+
+CREATE OR REPLACE TRIGGER sueldo_vendedores_sueldo_id BEFORE
+    INSERT ON sueldo_vendedores
+    FOR EACH ROW
+    WHEN ( new.sueldo_id IS NULL )
+BEGIN
+    :new.sueldo_id := sueldo_vendedores_sueldo_id.nextval;
+END;
+/
+
+CREATE SEQUENCE venta_venta_id_seq START WITH 1 NOCACHE ORDER;
+
+CREATE OR REPLACE TRIGGER venta_venta_id_trg BEFORE
+    INSERT ON venta
+    FOR EACH ROW
+    WHEN ( new.venta_id IS NULL )
+BEGIN
+    :new.venta_id := venta_venta_id_seq.nextval;
+END;
+
+CREATE SEQUENCE seq_pedido_id START WITH 1 NOCACHE ORDER;
+
+CREATE OR REPLACE TRIGGER pedido_pedido_id_trg BEFORE
+	INSERT ON Pedido
+	FOR EACH ROW
+	WHEN (new.pedido_id IS NULL)
+BEGIN
+    :new.pedido_id := seq_pedido_id.NEXTVAL;
+END;
+
+
+
+-- Creación de índices adicionales en tablas relevantes
+CREATE INDEX pedido_fecha_pedido_idx ON pedido (fecha_pedido) TABLESPACE indices;
+CREATE INDEX pedido_fecha_entrega_idx ON pedido (fecha_entrega) TABLESPACE indices;
+CREATE INDEX venta_fecha_idx ON venta (fecha) TABLESPACE indices;
+CREATE INDEX vendedor_nivel_idx ON vendedor (nivel) TABLESPACE indices;
+
+-- Índices en la tabla cliente
+CREATE INDEX cliente_nombre_idx ON cliente (nombre) TABLESPACE indices;
+
+-- Índices en la tabla detalle_pedido
+CREATE INDEX detalle_pedido_pedido_id_idx ON detalle_pedido (pedido_id) TABLESPACE indices;
+CREATE INDEX detalle_pedido_libro_id_idx ON detalle_pedido (libro_id) TABLESPACE indices;
+
+-- Índices en la tabla detalle_venta
+CREATE INDEX detalle_venta_venta_id_idx ON detalle_venta (venta_id) TABLESPACE indices;
+CREATE INDEX detalle_venta_cliente_id_idx ON detalle_venta (cliente_id) TABLESPACE indices;
+CREATE INDEX detalle_venta_vendedor_id_idx ON detalle_venta (vendedor_id) TABLESPACE indices;
+
+-- Índices en la tabla inventario
+CREATE INDEX inventario_existencia_idx ON inventario (libro_id) TABLESPACE indices;
+
+-- Índices en la tabla metodo_pago
+CREATE INDEX metodo_pago_persona_id_idx ON metodo_pago (persona_id) TABLESPACE indices;
+
+-- Índices en la tabla pedido
+CREATE INDEX pedido_proveedor_id_idx ON pedido (proveedor_id) TABLESPACE indices;
+
+-- Índices en la tabla proveedor
+CREATE INDEX proveedor_nombre_idx ON proveedor (nombre) TABLESPACE indices;
+
+-- Índices en la tabla sueldo_vendedores
+CREATE INDEX sueldo_vendedores_vendedor_id_idx ON sueldo_vendedores (vendedor_id) TABLESPACE indices;
+
+-- Índices en la tabla vendedor
+CREATE INDEX vendedor_jefe_id_idx ON vendedor (jefe_id) TABLESPACE indices;
+
+
+-- Reconstrucción de índices
+ALTER INDEX cuenta_persona_id_idx REBUILD TABLESPACE indices;
+ALTER INDEX libro_categoria_idx REBUILD TABLESPACE indices;
+ALTER INDEX pedido_fecha_pedido_idx REBUILD TABLESPACE indices;
+ALTER INDEX venta_fecha_idx REBUILD TABLESPACE indices;
+ALTER INDEX vendedor_nivel_idx REBUILD TABLESPACE indices;
+
+-- Creación de roles
+CREATE ROLE vendedor;
+CREATE ROLE cliente;
+CREATE ROLE administrador;
+
+-- Asignación de permisos para roles
+-- Permisos para el rol cliente
+GRANT SELECT, INSERT, UPDATE ON cliente TO cliente;
+GRANT SELECT, INSERT ON cuenta TO cliente;
+GRANT SELECT ON inventario TO cliente;
+GRANT SELECT, INSERT ON metodo_pago TO cliente;
+GRANT SELECT ON nivel TO cliente;
+GRANT SELECT, INSERT ON venta TO cliente;
+
+-- Permisos para el rol vendedor
+GRANT SELECT, INSERT, UPDATE ON vendedor TO vendedor;
+GRANT SELECT, INSERT, UPDATE ON cuenta TO vendedor;
+GRANT SELECT ON inventario TO vendedor;
+GRANT SELECT, INSERT, UPDATE ON venta TO vendedor;
+GRANT SELECT, INSERT ON detalle_venta TO vendedor;
+GRANT SELECT ON nivel TO vendedor;
+GRANT SELECT, INSERT, UPDATE ON sueldo_vendedores TO vendedor;
+
+-- Permisos para el rol administrador
+GRANT ALL PRIVILEGES ON cliente TO administrador;
+GRANT ALL PRIVILEGES ON cuenta TO administrador;
+GRANT ALL PRIVILEGES ON inventario TO administrador;
+GRANT ALL PRIVILEGES ON metodo_pago TO administrador;
+GRANT ALL PRIVILEGES ON nivel TO administrador;
+GRANT ALL PRIVILEGES ON pago TO administrador;
+GRANT ALL PRIVILEGES ON pedido TO administrador;
+GRANT ALL PRIVILEGES ON proveedor TO administrador;
+GRANT ALL PRIVILEGES ON sueldo_vendedores TO administrador;
+GRANT ALL PRIVILEGES ON vendedor TO administrador;
+GRANT ALL PRIVILEGES ON venta TO administrador;
+GRANT ALL PRIVILEGES ON detalle_venta TO administrador;
+GRANT ALL PRIVILEGES ON detalle_pedido TO administrador;
+GRANT ALL PRIVILEGES ON libro TO administrador;
+GRANT ALL PRIVILEGES ON comision_jerarquica TO administrador;
+
+-- Creación de usuarios y asignación de roles
+CREATE USER cliente_user IDENTIFIED BY cliente_pass DEFAULT TABLESPACE entidades;
+CREATE USER vendedor_user IDENTIFIED BY vendedor_pass DEFAULT TABLESPACE entidades;
+CREATE USER admin_user IDENTIFIED BY admin_pass DEFAULT TABLESPACE entidades;
+GRANT cliente TO cliente_user;
+GRANT vendedor TO vendedor_user;
+GRANT administrador TO admin_user;
+
+-- Mover las tablas del tablespace 'parametricas' 
+ALTER TABLE parametricas.nivel MOVE TABLESPACE parametricas;
+ALTER TABLE parametricas.comision_jerarquica MOVE TABLESPACE parametricas;
+
+-- Mover las tablas del tablespace 'transacciones' 
+ALTER TABLE transacciones.venta MOVE TABLESPACE transacciones;
+ALTER TABLE transacciones.pago MOVE TABLESPACE transacciones;
+ALTER TABLE transacciones.detalle_venta MOVE TABLESPACE transacciones;
+ALTER TABLE transacciones.pedido MOVE TABLESPACE transacciones;
+ALTER TABLE transacciones.detalle_pedido MOVE TABLESPACE transacciones;
+ALTER TABLE transacciones.inventario MOVE TABLESPACE transacciones;
+ALTER TABLE transacciones.sueldo_vendedores MOVE TABLESPACE transacciones;
+
+-- Mover las tablas del tablespace 'entidades'
+ALTER TABLE entidades.vendedor MOVE TABLESPACE entidades;
+ALTER TABLE entidades.cliente MOVE TABLESPACE entidades;
+ALTER TABLE entidades.cuenta MOVE TABLESPACE entidades;
+ALTER TABLE entidades.libro MOVE TABLESPACE entidades;
+ALTER TABLE entidades.metodo_pago MOVE TABLESPACE entidades;
+ALTER TABLE entidades.proveedor MOVE TABLESPACE entidades;
+
+
+--inserciones
+-- Inserciones en la tabla cliente
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (1, 'Juan', 'Pérez', 'Calle Falsa 123', 'juan.perez@email.com', '123456789', TO_DATE('1990-05-15', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (2, 'Ana', 'Gómez', 'Calle Real 456', 'ana.gomez@email.com', '987654321', TO_DATE('1985-08-20', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (3, 'Carlos', 'Rodríguez', 'Calle Luna 789', 'carlos.rodriguez@email.com', '112233445', TO_DATE('1980-02-25', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (4, 'Laura', 'Martínez', 'Calle Sol 321', 'laura.martinez@email.com', '556677889', TO_DATE('1992-06-10', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (5, 'Pedro', 'García', 'Calle del Mar 12', 'pedro.garcia@email.com', '123487654', TO_DATE('1983-11-05', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (6, 'Marta', 'López', 'Avenida Los Pinos 98', 'marta.lopez@email.com', '321654987', TO_DATE('1995-03-14', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (7, 'David', 'Martínez', 'Calle Noche 124', 'david.martinez@email.com', '754963218', TO_DATE('1988-12-20', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (8, 'Lucía', 'Sánchez', 'Calle del Sol 554', 'lucia.sanchez@email.com', '347852963', TO_DATE('1993-04-22', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (9, 'José', 'Martínez', 'Avenida Central 415', 'jose.martinez@email.com', '143265789', TO_DATE('1991-09-09', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (10, 'Raquel', 'Gómez', 'Calle Libertad 321', 'raquel.gomez@email.com', '214365879', TO_DATE('1994-07-11', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (11, 'Antonio', 'Lozano', 'Calle Reforma 301', 'antonio.lozano@email.com', '276543210', TO_DATE('1987-04-18', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (12, 'Clara', 'Pérez', 'Avenida de las Palmas 402', 'clara.perez@email.com', '298765432', TO_DATE('1990-02-28', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (13, 'Miguel', 'Álvarez', 'Calle Los Pinos 199', 'miguel.alvarez@email.com', '301987654', TO_DATE('1982-07-12', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (14, 'Cristina', 'Ruiz', 'Calle del Río 607', 'cristina.ruiz@email.com', '467358129', TO_DATE('1991-05-14', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (15, 'Fernando', 'Vázquez', 'Calle de la Estación 507', 'fernando.vazquez@email.com', '657483290', TO_DATE('1986-09-08', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (16, 'Isabel', 'Serrano', 'Calle Santa Clara 109', 'isabel.serrano@email.com', '908374652', TO_DATE('1995-01-02', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (17, 'Juan Carlos', 'Hernández', 'Calle del Sol 782', 'juan.hernandez@email.com', '356987423', TO_DATE('1989-03-03', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (18, 'Sandra', 'Torres', 'Calle El Prado 130', 'sandra.torres@email.com', '568923146', TO_DATE('1992-11-21', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (19, 'Luis', 'Morales', 'Calle Primavera 89', 'luis.morales@email.com', '892376451', TO_DATE('1984-06-17', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (20, 'Raúl', 'González', 'Avenida Oeste 407', 'raul.gonzalez@email.com', '654123789', TO_DATE('1981-12-02', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (21, 'Beatriz', 'Méndez', 'Calle del Oeste 342', 'beatriz.mendez@email.com', '543267890', TO_DATE('1983-10-30', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (22, 'José Luis', 'Jiménez', 'Calle García 531', 'joseluis.jimenez@email.com', '234567890', TO_DATE('1990-01-25', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (23, 'Rocío', 'Vega', 'Calle del Sol 209', 'rocio.vega@email.com', '852347690', TO_DATE('1991-10-15', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (24, 'María José', 'Fernández', 'Avenida El Sol 340', 'mariajose.fernandez@email.com', '163759824', TO_DATE('1987-08-14', 'YYYY-MM-DD'), 'activo');
+INSERT INTO cliente (cliente_id, nombre, apellido, direccion, email, telefono, fecha_nacimiento, estado)
+VALUES (25, 'Pedro Pablo', 'Santiago', 'Calle Los Árboles 732', 'pedropablo.santiago@email.com', '239485671', TO_DATE('1994-12-12', 'YYYY-MM-DD'), 'activo');
+
+-- Inserciones en la tabla comision_jerarquica
+INSERT INTO comision_jerarquica (nivel_id, porcentaje) VALUES (1, 5.00);
+INSERT INTO comision_jerarquica (nivel_id, porcentaje) VALUES (2, 4);
+INSERT INTO comision_jerarquica (nivel_id, porcentaje) VALUES (3, 2);
+INSERT INTO comision_jerarquica (nivel_id, porcentaje) VALUES (4, 1);
+
+-- Inserciones en la tabla nivel
+
+INSERT INTO nivel (nombre, comision, descuento, ventas_minimas)
+VALUES ('Bronce', 5.00, 10.00, 0);
+
+INSERT INTO nivel (nombre, comision, descuento, ventas_minimas)
+VALUES ('Plata', 7.00, 15.00, 25);
+
+INSERT INTO nivel (nombre, comision, descuento, ventas_minimas)
+VALUES ('Oro', 10.00, 20.00, 50);
+
+--inserciones en proveedor
+INSERT INTO proveedor (proveedor_id, nombre, telefono, email, direccion)
+VALUES (1, 'Proveedor A', '123456789', 'proveedora@email.com', 'Calle Ficticia 123');
+
+INSERT INTO proveedor (proveedor_id, nombre, telefono, email, direccion)
+VALUES (2, 'Proveedor B', '987654321', 'proveedorb@email.com', 'Avenida Ficticia 456');
+
+--inserciones en libro
+-- Inserciones en la tabla libro
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (1, 'El Principito', 'Antoine de Saint-Exupéry', 15.50, 'Literatura', 8.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (2, '1984', 'George Orwell', 18.00, 'Ficción', 10.50);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (3, 'Cien Años de Soledad', 'Gabriel García Márquez', 20.00, 'Ficción', 12.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (4, 'Don Quijote de la Mancha', 'Miguel de Cervantes', 22.50, 'Clásico', 13.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (5, 'Orgullo y Prejuicio', 'Jane Austen', 17.00, 'Romántico', 9.50);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (6, 'La Sombra del Viento', 'Carlos Ruiz Zafón', 23.00, 'Suspenso', 14.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (7, 'El Alquimista', 'Paulo Coelho', 12.50, 'Ficción', 6.50);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (8, 'Harry Potter y la Piedra Filosofal', 'J.K. Rowling', 25.00, 'Fantástico', 14.50);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (9, 'El Hobbit', 'J.R.R. Tolkien', 18.50, 'Fantástico', 10.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (10, 'Matar a un Ruiseñor', 'Harper Lee', 19.00, 'Drama', 11.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (11, 'El Gran Gatsby', 'F. Scott Fitzgerald', 16.00, 'Clásico', 9.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (12, 'La Casa de los Espíritus', 'Isabel Allende', 21.00, 'Ficción', 12.50);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (13, 'Los Pilares de la Tierra', 'Ken Follett', 28.00, 'Histórico', 16.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (14, 'El Código Da Vinci', 'Dan Brown', 24.50, 'Suspenso', 13.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (15, 'Crónica de una Muerte Anunciada', 'Gabriel García Márquez', 19.50, 'Ficción', 11.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (16, 'Fahrenheit 451', 'Ray Bradbury', 17.00, 'Ciencia Ficción', 9.50);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (17, 'En Llamas', 'Suzanne Collins', 22.00, 'Ficción', 13.50);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (18, 'El Juego de Ender', 'Orson Scott Card', 20.00, 'Ciencia Ficción', 12.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (19, 'La Noche Más Oscura', 'David Lagercrantz', 26.00, 'Suspenso', 15.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (20, 'El Señor de los Anillos', 'J.R.R. Tolkien', 30.00, 'Fantástico', 18.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (21, 'La Chica del Tren', 'Paula Hawkins', 22.00, 'Suspenso', 12.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (22, 'Todo Todo', 'Nicola Yoon', 15.50, 'Romántico', 8.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (23, 'La Metamorfosis', 'Franz Kafka', 13.00, 'Clásico', 7.00);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (24, 'La Isla del Tesoro', 'Robert Louis Stevenson', 14.50, 'Aventura', 8.50);
+INSERT INTO libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+VALUES (25, 'Las Aventuras de Sherlock Holmes', 'Arthur Conan Doyle', 18.00, 'Detective', 10.00);
+
+--insercion en vendedores
+-- Inserciones en la tabla vendedor
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (1, 'Carlos Perez', TO_DATE('1985-03-25', 'YYYY-MM-DD'), NULL, 'Bronce', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (2, 'Laura Gomez', TO_DATE('1990-07-14', 'YYYY-MM-DD'), 1, 'Bronce', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (3, 'Javier Ruiz', TO_DATE('1987-11-05', 'YYYY-MM-DD'), 1, 'Plata', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (4, 'Marta Vargas', TO_DATE('1992-06-18', 'YYYY-MM-DD'), 2, 'Bronce', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (5, 'Pedro Hernandez', TO_DATE('1980-02-02', 'YYYY-MM-DD'), 2, 'Oro', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (6, 'Sofia Diaz', TO_DATE('1988-09-23', 'YYYY-MM-DD'), 3, 'Bronce', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (7, 'Juan Torres', TO_DATE('1995-12-10', 'YYYY-MM-DD'), 3, 'Plata', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (8, 'Ana Martinez', TO_DATE('1991-01-17', 'YYYY-MM-DD'), 4, 'Oro', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (9, 'Luis Fernandez', TO_DATE('1983-03-30', 'YYYY-MM-DD'), 4, 'Bronce', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (10, 'Clara Jimenez', TO_DATE('1996-08-19', 'YYYY-MM-DD'), 5, 'Plata', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (11, 'Eduardo Morales', TO_DATE('1990-11-08', 'YYYY-MM-DD'), 5, 'Oro', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (12, 'Patricia Ruiz', TO_DATE('1989-04-24', 'YYYY-MM-DD'), 6, 'Bronce', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (13, 'Fernando Perez', TO_DATE('1986-05-15', 'YYYY-MM-DD'), 6, 'Plata', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (14, 'Raquel Lopez', TO_DATE('1993-07-22', 'YYYY-MM-DD'), 7, 'Oro', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (15, 'David Garcia', TO_DATE('1984-10-05', 'YYYY-MM-DD'), 7, 'Bronce', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (16, 'Olga Fernandez', TO_DATE('1994-12-01', 'YYYY-MM-DD'), 8, 'Plata', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (17, 'Carlos Alvarez', TO_DATE('1982-06-12', 'YYYY-MM-DD'), 8, 'Oro', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (18, 'Elena Garcia', TO_DATE('1987-09-30', 'YYYY-MM-DD'), 9, 'Bronce', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (19, 'Antonio Sanchez', TO_DATE('1992-05-20', 'YYYY-MM-DD'), 9, 'Plata', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (20, 'Beatriz Torres', TO_DATE('1990-01-09', 'YYYY-MM-DD'), 10, 'Oro', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (21, 'Javier Mendoza', TO_DATE('1985-03-13', 'YYYY-MM-DD'), 10, 'Bronce', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (22, 'Sergio Lopez', TO_DATE('1991-02-04', 'YYYY-MM-DD'), 11, 'Plata', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (23, 'Veronica Sanchez', TO_DATE('1989-10-17', 'YYYY-MM-DD'), 11, 'Oro', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (24, 'Gabriel Ruiz', TO_DATE('1994-04-25', 'YYYY-MM-DD'), 12, 'Bronce', 'Activo');
+INSERT INTO vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+VALUES (25, 'Rosa Morales', TO_DATE('1986-11-08', 'YYYY-MM-DD'), 12, 'Plata', 'Activo');
+
+--inserciones de metodo_pago
+-- Inserciones en la tabla metodo_pago
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '4111111111111111', '1234', 1);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '5500000000000004', '5678', 2);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '340000000000009', '9876', 3);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '4111111111111122', '4321', 4);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '5500000000000005', '8765', 5);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '340000000000010', '6543', 6);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '4111111111111133', '1122', 7);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '5500000000000006', '2233', 8);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '340000000000011', '3344', 9);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '4111111111111144', '4455', 10);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '5500000000000007', '5566', 11);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '340000000000012', '6677', 12);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '4111111111111155', '7788', 13);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '5500000000000008', '8899', 14);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '340000000000013', '9900', 15);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '4111111111111166', '1111', 16);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '5500000000000009', '2222', 17);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '340000000000014', '3333', 18);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '4111111111111177', '4444', 19);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '5500000000000010', '5555', 20);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '340000000000015', '6666', 21);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '4111111111111188', '7777', 22);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '5500000000000011', '8888', 23);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '340000000000016', '9999', 24);
+INSERT INTO metodo_pago (metodo_pago_id, numero_tarjeta, contrasenia, persona_id)
+VALUES (null, '4111111111111199', '0000', 25);
+
+--insercion en cuenta
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario1', 'pass123', TO_DATE('2024-11-01', 'YYYY-MM-DD'), 1, 'activo', 'cliente');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario2', 'pass234', TO_DATE('2024-11-02', 'YYYY-MM-DD'), 2, 'activo', 'vendedor');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario3', 'pass345', TO_DATE('2024-11-03', 'YYYY-MM-DD'), 3, 'activo', 'admin');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario4', 'pass456', TO_DATE('2024-11-04', 'YYYY-MM-DD'), 4, 'activo', 'cliente');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario5', 'pass567', TO_DATE('2024-11-05', 'YYYY-MM-DD'), 5, 'activo', 'vendedor');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario6', 'pass678', TO_DATE('2024-11-06', 'YYYY-MM-DD'), 6, 'activo', 'admin');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario7', 'pass789', TO_DATE('2024-11-07', 'YYYY-MM-DD'), 7, 'activo', 'cliente');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario8', 'pass890', TO_DATE('2024-11-08', 'YYYY-MM-DD'), 8, 'activo', 'vendedor');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario9', 'pass901', TO_DATE('2024-11-09', 'YYYY-MM-DD'), 9, 'activo', 'admin');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario10', 'pass012', TO_DATE('2024-11-10', 'YYYY-MM-DD'), 10, 'activo', 'cliente');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario11', 'pass123', TO_DATE('2024-11-11', 'YYYY-MM-DD'), 11, 'activo', 'vendedor');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario12', 'pass234', TO_DATE('2024-11-12', 'YYYY-MM-DD'), 12, 'activo', 'admin');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario13', 'pass345', TO_DATE('2024-11-13', 'YYYY-MM-DD'), 13, 'activo', 'cliente');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario14', 'pass456', TO_DATE('2024-11-14', 'YYYY-MM-DD'), 14, 'activo', 'vendedor');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario15', 'pass567', TO_DATE('2024-11-15', 'YYYY-MM-DD'), 15, 'activo', 'admin');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario16', 'pass678', TO_DATE('2024-11-16', 'YYYY-MM-DD'), 16, 'activo', 'cliente');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario17', 'pass789', TO_DATE('2024-11-17', 'YYYY-MM-DD'), 17, 'activo', 'vendedor');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario18', 'pass890', TO_DATE('2024-11-18', 'YYYY-MM-DD'), 18, 'activo', 'admin');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario19', 'pass901', TO_DATE('2024-11-19', 'YYYY-MM-DD'), 19, 'activo', 'cliente');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario20', 'pass012', TO_DATE('2024-11-20', 'YYYY-MM-DD'), 20, 'activo', 'vendedor');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario21', 'pass123', TO_DATE('2024-11-21', 'YYYY-MM-DD'), 21, 'activo', 'admin');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario22', 'pass234', TO_DATE('2024-11-22', 'YYYY-MM-DD'), 22, 'activo', 'cliente');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario23', 'pass345', TO_DATE('2024-11-23', 'YYYY-MM-DD'), 23, 'activo', 'vendedor');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario24', 'pass456', TO_DATE('2024-11-24', 'YYYY-MM-DD'), 24, 'activo', 'admin');
+
+INSERT INTO cuenta (usuario, contrasenia, fecha_creacion, persona_id, estado, tipo_usuario) 
+VALUES ('usuario25', 'pass567', TO_DATE('2024-11-25', 'YYYY-MM-DD'), 25, 'activo', 'cliente');
+
+-- Inserciones en la tabla venta
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-01-15', 'YYYY-MM-DD'), 'Completado', 150.75);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-02-12', 'YYYY-MM-DD'), 'Pendiente', 230.50);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-03-10', 'YYYY-MM-DD'), 'Completado', 120.00);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-04-07', 'YYYY-MM-DD'), 'Cancelado', 320.10);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-05-20', 'YYYY-MM-DD'), 'Completado', 415.40);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-06-18', 'YYYY-MM-DD'), 'Pendiente', 180.80);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-07-25', 'YYYY-MM-DD'), 'Completado', 250.30);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-08-15', 'YYYY-MM-DD'), 'Pendiente', 500.00);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-09-05', 'YYYY-MM-DD'), 'Cancelado', 120.90);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-10-22', 'YYYY-MM-DD'), 'Completado', 375.60);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-11-01', 'YYYY-MM-DD'), 'Pendiente', 310.00);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-11-07', 'YYYY-MM-DD'), 'Completado', 120.40);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-01-02', 'YYYY-MM-DD'), 'Cancelado', 600.30);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-02-14', 'YYYY-MM-DD'), 'Completado', 255.10);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-03-19', 'YYYY-MM-DD'), 'Pendiente', 320.40);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-04-23', 'YYYY-MM-DD'), 'Completado', 450.60);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-05-30', 'YYYY-MM-DD'), 'Cancelado', 199.90);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-06-02', 'YYYY-MM-DD'), 'Pendiente', 510.75);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-07-17', 'YYYY-MM-DD'), 'Completado', 405.30);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-08-09', 'YYYY-MM-DD'), 'Pendiente', 280.20);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-09-14', 'YYYY-MM-DD'), 'Completado', 150.90);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-10-03', 'YYYY-MM-DD'), 'Cancelado', 220.60);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Pendiente', 340.50);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-02-25', 'YYYY-MM-DD'), 'Completado', 270.80);
+INSERT INTO venta (venta_id, fecha, estado, total)
+VALUES (null, TO_DATE('2024-03-15', 'YYYY-MM-DD'), 'Pendiente', 500.60);
+
+-- Inserciones en la tabla pedido
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (1, TO_DATE('2024-01-10', 'YYYY-MM-DD'), TO_DATE('2024-01-20', 'YYYY-MM-DD'), 1, 'Completado', 350.75);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (2, TO_DATE('2024-02-05', 'YYYY-MM-DD'), TO_DATE('2024-02-12', 'YYYY-MM-DD'), 2, 'Pendiente', 420.50);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (3, TO_DATE('2024-03-07', 'YYYY-MM-DD'), TO_DATE('2024-03-15', 'YYYY-MM-DD'), 1, 'Completado', 215.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (4, TO_DATE('2024-04-10', 'YYYY-MM-DD'), TO_DATE('2024-04-18', 'YYYY-MM-DD'), 2, 'Cancelado', 180.30);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (5, TO_DATE('2024-05-05', 'YYYY-MM-DD'), TO_DATE('2024-05-12', 'YYYY-MM-DD'), 1, 'Pendiente', 320.40);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (6, TO_DATE('2024-06-12', 'YYYY-MM-DD'), TO_DATE('2024-06-20', 'YYYY-MM-DD'), 2, 'Completado', 150.75);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (7, TO_DATE('2024-07-15', 'YYYY-MM-DD'), TO_DATE('2024-07-25', 'YYYY-MM-DD'), 1, 'Pendiente', 295.60);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (8, TO_DATE('2024-08-10', 'YYYY-MM-DD'), TO_DATE('2024-08-18', 'YYYY-MM-DD'), 2, 'Completado', 440.90);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (9, TO_DATE('2024-09-12', 'YYYY-MM-DD'), TO_DATE('2024-09-20', 'YYYY-MM-DD'), 1, 'Cancelado', 130.40);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (10, TO_DATE('2024-10-05', 'YYYY-MM-DD'), TO_DATE('2024-10-12', 'YYYY-MM-DD'), 2, 'Pendiente', 375.80);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (11, TO_DATE('2024-11-01', 'YYYY-MM-DD'), TO_DATE('2024-11-08', 'YYYY-MM-DD'), 1, 'Completado', 265.20);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (12, TO_DATE('2024-01-25', 'YYYY-MM-DD'), TO_DATE('2024-02-02', 'YYYY-MM-DD'), 2, 'Cancelado', 310.50);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (13, TO_DATE('2024-02-22', 'YYYY-MM-DD'), TO_DATE('2024-03-01', 'YYYY-MM-DD'), 1, 'Pendiente', 500.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (14, TO_DATE('2024-03-30', 'YYYY-MM-DD'), TO_DATE('2024-04-08', 'YYYY-MM-DD'), 2, 'Completado', 320.75);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (15, TO_DATE('2024-04-20', 'YYYY-MM-DD'), TO_DATE('2024-04-27', 'YYYY-MM-DD'), 1, 'Pendiente', 275.40);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (16, TO_DATE('2024-05-15', 'YYYY-MM-DD'), TO_DATE('2024-05-22', 'YYYY-MM-DD'), 2, 'Cancelado', 185.30);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (17, TO_DATE('2024-06-25', 'YYYY-MM-DD'), TO_DATE('2024-07-05', 'YYYY-MM-DD'), 1, 'Completado', 230.80);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (18, TO_DATE('2024-07-30', 'YYYY-MM-DD'), TO_DATE('2024-08-05', 'YYYY-MM-DD'), 2, 'Pendiente', 360.90);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (19, TO_DATE('2024-08-22', 'YYYY-MM-DD'), TO_DATE('2024-08-30', 'YYYY-MM-DD'), 1, 'Completado', 150.10);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (20, TO_DATE('2024-09-10', 'YYYY-MM-DD'), TO_DATE('2024-09-17', 'YYYY-MM-DD'), 2, 'Pendiente', 410.60);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (21, TO_DATE('2024-10-15', 'YYYY-MM-DD'), TO_DATE('2024-10-22', 'YYYY-MM-DD'), 1, 'Cancelado', 190.40);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (22, TO_DATE('2024-11-03', 'YYYY-MM-DD'), TO_DATE('2024-11-10', 'YYYY-MM-DD'), 2, 'Pendiente', 450.80);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (23, TO_DATE('2024-01-12', 'YYYY-MM-DD'), TO_DATE('2024-01-19', 'YYYY-MM-DD'), 1, 'Completado', 375.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (24, TO_DATE('2024-02-18', 'YYYY-MM-DD'), TO_DATE('2024-02-25', 'YYYY-MM-DD'), 2, 'Pendiente', 320.10);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total)
+VALUES (25, TO_DATE('2024-03-05', 'YYYY-MM-DD'), TO_DATE('2024-03-12', 'YYYY-MM-DD'), 1, 'Completado', 500.50);
+
+-- Inserciones en la tabla detalle_pedido
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (1, 1, 3, 150.90);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (2, 2, 5, 170.50);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (3, 3, 2, 100.60);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (4, 4, 4, 112.80);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (5, 5, 3, 111.30);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (6, 6, 1, 56.20);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (7, 7, 2, 92.40);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (8, 8, 6, 253.80);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (9, 9, 4, 141.20);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (10, 10, 2, 76.80);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (11, 11, 5, 165.50);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (12, 12, 3, 93.90);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (13, 13, 2, 100.40);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (14, 14, 1, 49.00);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (15, 15, 7, 208.80);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (16, 16, 3, 108.00);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (17, 17, 4, 160.00);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (18, 18, 2, 84.40);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (19, 19, 6, 213.00);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (20, 20, 5, 195.00);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (21, 21, 3, 108.90);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (22, 22, 4, 120.00);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (23, 23, 2, 82.80);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (24, 24, 1, 50.00);
+INSERT INTO detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+VALUES (25, 25, 5, 185.00);
+
+-- Inserciones en la tabla detalle_venta
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (1, 1, 1, 1, 2, 101.80);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (2, 2, 2, 2, 3, 123.30);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (3, 3, 3, 3, 1, 50.30);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (4, 4, 4, 4, 5, 140.00);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (5, 5, 5, 5, 4, 111.20);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (6, 6, 6, 6, 2, 112.40);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (7, 7, 7, 7, 3, 138.60);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (8, 8, 8, 8, 1, 42.30);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (9, 9, 9, 9, 2, 92.40);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (10, 10, 10, 10, 4, 124.80);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (11, 11, 11, 11, 1, 45.60);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (12, 12, 12, 12, 5, 173.50);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (13, 13, 13, 13, 2, 70.80);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (14, 14, 14, 14, 3, 123.90);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (15, 15, 15, 15, 6, 186.00);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (16, 16, 16, 16, 2, 80.80);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (17, 17, 17, 17, 4, 160.00);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (18, 18, 18, 18, 3, 111.60);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (19, 19, 19, 19, 5, 225.00);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (20, 20, 20, 20, 2, 84.60);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (21, 21, 21, 21, 4, 154.40);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (22, 22, 22, 22, 3, 123.90);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (23, 23, 23, 23, 2, 92.60);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (24, 24, 24, 24, 1, 52.80);
+INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal)
+VALUES (25, 25, 25, 25, 4, 168.00);
+
+-- Inserciones en la tabla inventario
+INSERT INTO inventario (libro_id, existencia) VALUES (1, 30);
+INSERT INTO inventario (libro_id, existencia) VALUES (2, 25);
+INSERT INTO inventario (libro_id, existencia) VALUES (3, 40);
+INSERT INTO inventario (libro_id, existencia) VALUES (4, 15);
+INSERT INTO inventario (libro_id, existencia) VALUES (5, 20);
+INSERT INTO inventario (libro_id, existencia) VALUES (6, 50);
+INSERT INTO inventario (libro_id, existencia) VALUES (7, 35);
+INSERT INTO inventario (libro_id, existencia) VALUES (8, 10);
+INSERT INTO inventario (libro_id, existencia) VALUES (9, 60);
+INSERT INTO inventario (libro_id, existencia) VALUES (10, 45);
+INSERT INTO inventario (libro_id, existencia) VALUES (11, 30);
+INSERT INTO inventario (libro_id, existencia) VALUES (12, 25);
+INSERT INTO inventario (libro_id, existencia) VALUES (13, 10);
+INSERT INTO inventario (libro_id, existencia) VALUES (14, 50);
+INSERT INTO inventario (libro_id, existencia) VALUES (15, 70);
+INSERT INTO inventario (libro_id, existencia) VALUES (16, 55);
+INSERT INTO inventario (libro_id, existencia) VALUES (17, 25);
+INSERT INTO inventario (libro_id, existencia) VALUES (18, 45);
+INSERT INTO inventario (libro_id, existencia) VALUES (19, 15);
+INSERT INTO inventario (libro_id, existencia) VALUES (20, 30);
+INSERT INTO inventario (libro_id, existencia) VALUES (21, 40);
+INSERT INTO inventario (libro_id, existencia) VALUES (22, 20);
+INSERT INTO inventario (libro_id, existencia) VALUES (23, 35);
+INSERT INTO inventario (libro_id, existencia) VALUES (24, 50);
+INSERT INTO inventario (libro_id, existencia) VALUES (25, 60);
+
+-- Inserciones en la tabla pago
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 250.00, 1, 1);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 150.00, 2, 2);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 300.00, 3, 3);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 450.00, 4, 4);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 100.00, 5, 5);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 200.00, 6, 6);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 350.00, 7, 7);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 250.00, 8, 8);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 400.00, 9, 9);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 100.00, 10, 10);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 500.00, 11, 11);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 450.00, 12, 12);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 150.00, 13, 13);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 250.00, 14, 14);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 300.00, 15, 15);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 200.00, 16, 16);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 350.00, 17, 17);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 400.00, 18, 18);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 500.00, 19, 19);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 450.00, 20, 20);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 100.00, 21, 21);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 250.00, 22, 22);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 350.00, 23, 23);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 400.00, 24, 24);
+INSERT INTO pago (pago_id, cantidad, metodo_pago_id, venta_id) VALUES (null, 500.00, 25, 25);
+
+-- Inserciones en la tabla pedido
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (1, TO_DATE('2024-10-15', 'YYYY-MM-DD'), TO_DATE('2024-10-20', 'YYYY-MM-DD'), 1, 'Enviado', 500.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (2, TO_DATE('2024-10-18', 'YYYY-MM-DD'), TO_DATE('2024-10-22', 'YYYY-MM-DD'), 1, 'Enviado', 350.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (3, TO_DATE('2024-10-20', 'YYYY-MM-DD'), TO_DATE('2024-10-25', 'YYYY-MM-DD'), 2, 'Enviado', 450.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (4, TO_DATE('2024-10-22', 'YYYY-MM-DD'), TO_DATE('2024-10-30', 'YYYY-MM-DD'), 2, 'Enviado', 600.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (5, TO_DATE('2024-10-24', 'YYYY-MM-DD'), TO_DATE('2024-10-30', 'YYYY-MM-DD'), 1, 'Enviado', 300.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (6, TO_DATE('2024-10-26', 'YYYY-MM-DD'), TO_DATE('2024-10-30', 'YYYY-MM-DD'), 2, 'Enviado', 700.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (7, TO_DATE('2024-10-28', 'YYYY-MM-DD'), TO_DATE('2024-10-30', 'YYYY-MM-DD'), 1, 'Enviado', 520.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (8, TO_DATE('2024-10-30', 'YYYY-MM-DD'), TO_DATE('2024-11-05', 'YYYY-MM-DD'), 2, 'Enviado', 600.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (9, TO_DATE('2024-11-01', 'YYYY-MM-DD'), TO_DATE('2024-11-07', 'YYYY-MM-DD'), 1, 'Enviado', 450.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (10, TO_DATE('2024-11-03', 'YYYY-MM-DD'), TO_DATE('2024-11-09', 'YYYY-MM-DD'), 2, 'Enviado', 850.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (11, TO_DATE('2024-11-05', 'YYYY-MM-DD'), TO_DATE('2024-11-10', 'YYYY-MM-DD'), 1, 'Enviado', 380.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (12, TO_DATE('2024-11-07', 'YYYY-MM-DD'), TO_DATE('2024-11-12', 'YYYY-MM-DD'), 2, 'Enviado', 750.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (13, TO_DATE('2024-11-09', 'YYYY-MM-DD'), TO_DATE('2024-11-14', 'YYYY-MM-DD'), 1, 'Enviado', 490.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (14, TO_DATE('2024-11-11', 'YYYY-MM-DD'), TO_DATE('2024-11-18', 'YYYY-MM-DD'), 2, 'Enviado', 640.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (15, TO_DATE('2024-11-13', 'YYYY-MM-DD'), TO_DATE('2024-11-20', 'YYYY-MM-DD'), 1, 'Enviado', 550.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (16, TO_DATE('2024-11-15', 'YYYY-MM-DD'), TO_DATE('2024-11-22', 'YYYY-MM-DD'), 2, 'Enviado', 700.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (17, TO_DATE('2024-11-17', 'YYYY-MM-DD'), TO_DATE('2024-11-25', 'YYYY-MM-DD'), 1, 'Enviado', 420.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (18, TO_DATE('2024-11-19', 'YYYY-MM-DD'), TO_DATE('2024-11-30', 'YYYY-MM-DD'), 2, 'Enviado', 800.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (19, TO_DATE('2024-11-21', 'YYYY-MM-DD'), TO_DATE('2024-12-01', 'YYYY-MM-DD'), 1, 'Enviado', 450.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (20, TO_DATE('2024-11-23', 'YYYY-MM-DD'), TO_DATE('2024-12-05', 'YYYY-MM-DD'), 2, 'Enviado', 850.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (21, TO_DATE('2024-11-25', 'YYYY-MM-DD'), TO_DATE('2024-12-10', 'YYYY-MM-DD'), 1, 'Enviado', 400.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (22, TO_DATE('2024-11-27', 'YYYY-MM-DD'), TO_DATE('2024-12-12', 'YYYY-MM-DD'), 2, 'Enviado', 500.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (23, TO_DATE('2024-11-29', 'YYYY-MM-DD'), TO_DATE('2024-12-15', 'YYYY-MM-DD'), 1, 'Enviado', 600.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (24, TO_DATE('2024-12-01', 'YYYY-MM-DD'), TO_DATE('2024-12-10', 'YYYY-MM-DD'), 2, 'Enviado', 700.00);
+INSERT INTO pedido (pedido_id, fecha_pedido, fecha_entrega, proveedor_id, estado, total) VALUES (25, TO_DATE('2024-12-03', 'YYYY-MM-DD'), TO_DATE('2024-12-15', 'YYYY-MM-DD'), 1, 'Pendiente', 800.00);
+
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 1, 1500.00, 300.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Bronce', 'Nivel 1', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 2, 1600.00, 350.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Plata', 'Nivel 2', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 3, 1400.00, 250.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Bronce', 'Nivel 1', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 4, 1550.00, 400.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Plata', 'Nivel 2', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 5, 1450.00, 300.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Bronce', 'Nivel 1', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 6, 1500.00, 500.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Plata', 'Nivel 2', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 7, 1600.00, 450.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Oro', 'Nivel 3', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 8, 1700.00, 350.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Oro', 'Nivel 3', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 9, 1550.00, 380.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Plata', 'Nivel 2', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 10, 1450.00, 300.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Bronce', 'Nivel 1', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 11, 1500.00, 350.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Bronce', 'Nivel 1', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 12, 1600.00, 400.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Plata', 'Nivel 2', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 13, 1700.00, 500.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Oro', 'Nivel 3', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 14, 1600.00, 350.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Plata', 'Nivel 2', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 15, 1500.00, 450.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Bronce', 'Nivel 1', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 16, 1550.00, 400.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Plata', 'Nivel 2', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 17, 1400.00, 300.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Bronce', 'Nivel 1', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 18, 1600.00, 500.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Plata', 'Nivel 2', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 19, 1700.00, 450.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Oro', 'Nivel 3', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 20, 1550.00, 400.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Plata', 'Nivel 2', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 21, 1450.00, 350.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Bronce', 'Nivel 1', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 22, 1500.00, 500.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Plata', 'Nivel 2', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 23, 1600.00, 450.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Oro', 'Nivel 3', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 24, 1450.00, 300.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Bronce', 'Nivel 1', 'Pagado');
+INSERT INTO sueldo_vendedores (sueldo_id, vendedor_id, sueldo_base, comisiones, fecha_pago, nivel, posicion_arbol, estado) VALUES (null, 25, 1500.00, 350.00, TO_DATE('2024-11-10', 'YYYY-MM-DD'), 'Plata', 'Nivel 2', 'Pagado');
+
+ALTER TABLESPACE parametricas read only;

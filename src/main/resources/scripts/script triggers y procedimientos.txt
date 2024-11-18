@@ -1,0 +1,384 @@
+create or replace TRIGGER confirmar_venta
+BEFORE UPDATE OF estado ON Venta
+FOR EACH ROW
+DECLARE
+    v_total_venta      Venta.total%TYPE;
+    v_vendedor_id      Vendedor.vendedor_id%TYPE;
+    v_libro_id         detalle_venta.libro_id%TYPE;
+    v_cantidad_vendida detalle_venta.cantidad%TYPE;
+    v_cantidad_inventario Inventario.existencia%TYPE;
+BEGIN
+    -- Verificar si el estado de la venta está cambiando a 'Completado'
+    IF :NEW.estado = 'Completado' AND :OLD.estado != 'Completado' THEN
+        -- Comprobar si hay inventario suficiente para cada libro en la venta
+        FOR v IN (SELECT d.libro_id, d.cantidad
+                  FROM detalle_venta d
+                  WHERE d.venta_id = :NEW.venta_id) LOOP
+            -- Obtener la cantidad disponible en inventario
+            SELECT NVL(i.existencia, 0)
+            INTO v_cantidad_inventario
+            FROM Inventario i
+            WHERE i.libro_id = v.libro_id;
+
+            -- Si no hay suficiente inventario, lanzar un error
+            IF v_cantidad_inventario < v.cantidad THEN
+                RAISE_APPLICATION_ERROR(-20001, 'No hay suficiente inventario para el libro con ID ' || v.libro_id);
+            END IF;
+
+            -- Disminuir el inventario
+            UPDATE Inventario
+            SET existencia = existencia - v.cantidad
+            WHERE libro_id = v.libro_id;
+        END LOOP;
+
+        -- Calcular el total de la venta sumando los subtotales de los detalles de la venta
+        SELECT NVL(SUM(d.subtotal), 0)
+        INTO v_total_venta
+        FROM detalle_venta d
+        WHERE d.venta_id = :NEW.venta_id
+        GROUP BY venta_id;
+
+        -- Obtener el id del vendedor
+        SELECT d.vendedor_id
+        INTO v_vendedor_id
+        FROM detalle_venta d
+        WHERE d.venta_id = :NEW.venta_id
+        GROUP BY d.vendedor_id;
+
+        -- Actualizar el total de la venta antes de que el estado cambie
+        :NEW.total := v_total_venta;
+
+        -- Llamar al procedimiento para registrar la comisión del vendedor
+        registrar_comision_venta_proc(:NEW.venta_id, v_vendedor_id);
+    END IF;
+END;
+
+create or replace TRIGGER registrar_pago
+AFTER UPDATE OF estado ON Venta
+FOR EACH ROW
+DECLARE
+    v_total_venta       Venta.total%TYPE;
+    v_cliente_id        Cliente.cliente_id%TYPE;
+    v_metodo_pago_id    Metodo_pago.metodo_pago_id%type;
+BEGIN
+    -- Verificar si el estado de la venta ha cambiado a 'Completado'
+    IF :NEW.estado = 'Completado' AND :OLD.estado != 'Completado' THEN
+        -- Obtener el total de la venta
+        SELECT NVL(total, 0)
+        INTO v_total_venta
+        FROM Venta
+        WHERE venta_id = :NEW.venta_id;
+
+        -- Obtener el ID del cliente
+        SELECT dv.cliente_id
+        INTO v_cliente_id
+        FROM Venta v join detalle_venta dv on v.venta_id = dv.venta_id
+        WHERE dv.venta_id = :NEW.venta_id;
+        
+        select metodo_pago_id into v_metodo_pago_id
+        from metodo_pago
+        where persona_id = v_cliente_id and ROWNUM = 1;
+
+        -- Insertar un registro en la tabla de pagos
+        INSERT INTO Pago (cantidad, metodo_pago_id, venta_id)
+        VALUES (v_total_venta, v_metodo_pago_id, :NEW.venta_id);
+    END IF;
+END;
+
+create or replace PROCEDURE actualizar_nivel_vendedores IS
+    -- Variables para el cálculo de las ventas del último mes
+    v_total_ventas     NUMBER(10, 2);
+    v_nuevo_nivel      Nivel.nombre%type;
+    v_umbral_ventas    Nivel.ventas_minimas%type;  -- Para obtener el umbral de ventas de la tabla 'nivel'
+BEGIN
+    -- Loop para procesar a cada vendedor
+    FOR v IN (
+        SELECT vendedor_id
+        FROM Vendedor
+    ) LOOP
+        -- Obtener el total de ventas del último mes para cada vendedor
+        SELECT NVL(SUM(d.subtotal), 0) 
+        INTO v_total_ventas
+        FROM detalle_venta d
+        JOIN venta vta ON vta.venta_id = d.venta_id
+        WHERE d.vendedor_id = v.vendedor_id
+        AND vta.fecha BETWEEN TRUNC(ADD_MONTHS(SYSDATE, -1), 'MM') AND LAST_DAY(ADD_MONTHS(SYSDATE, -1));
+
+        -- Obtener el nivel y el umbral de ventas desde la tabla 'nivel'
+        SELECT nombre, ventas_minimas
+        INTO v_nuevo_nivel, v_umbral_ventas
+        FROM (
+            SELECT nombre, ventas_minimas
+            FROM nivel
+            WHERE ventas_minimas <= v_total_ventas
+            ORDER BY ventas_minimas DESC
+        )
+        WHERE ROWNUM = 1;
+
+
+
+        -- Actualizar el nivel del vendedor
+        UPDATE Vendedor
+        SET nivel = v_nuevo_nivel
+        WHERE vendedor_id = v.vendedor_id;
+
+    END LOOP;
+
+    COMMIT;  -- Confirmar los cambios
+END actualizar_nivel_vendedores;
+
+create or replace PROCEDURE desvincular_vendedor(p_vendedor_id IN Vendedor.vendedor_id%TYPE) IS
+BEGIN
+    -- Poner al vendedor como inactivo (actualizar su estado)
+    UPDATE Vendedor
+    SET estado = 'Inactivo'
+    WHERE vendedor_id = p_vendedor_id;
+
+    -- Eliminar el jefe_id de los vendedores que tienen este vendedor como jefe
+    UPDATE Vendedor
+    SET jefe_id = NULL
+    WHERE jefe_id = p_vendedor_id;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        -- En caso de error, revertir la transacción y lanzar el error
+        ROLLBACK;
+        RAISE_APPLICATION_ERROR(-20001, 'Error al desvincular el vendedor: ' || SQLERRM);
+END desvincular_vendedor;
+
+create or replace PROCEDURE insertar_afiliado(
+    p_vendedor_id IN Vendedor.vendedor_id%TYPE,
+    p_nombre IN Vendedor.nombre%TYPE,
+    p_fecha_nacimiento IN Vendedor.fecha_nacimiento%TYPE,
+    p_jefe_id IN Vendedor.jefe_id%TYPE,
+    p_estado IN Vendedor.estado%TYPE
+) IS
+BEGIN
+    INSERT INTO Vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
+    VALUES (p_vendedor_id, p_nombre, p_fecha_nacimiento, p_jefe_id, 'bronce', p_estado);
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Error al insertar un nuevo afiliado: ' || SQLERRM);
+END insertar_afiliado;
+
+create or replace PROCEDURE insertar_libro(
+    p_libro_id IN Libro.libro_id%TYPE,
+    p_titulo IN Libro.titulo%TYPE,  -- Título del libro
+    p_autor IN Libro.autor%TYPE,    -- Autor del libro
+    p_precio_venta IN Libro.precioventa%TYPE,  -- Precio de venta del libro
+    p_categoria IN Libro.categoria%TYPE,  -- Categoría del libro
+    p_precio_compra IN Libro.preciocompra%TYPE  -- Precio de compra del libro
+) IS
+BEGIN
+    -- Insertar un nuevo libro en la tabla Libro
+    INSERT INTO Libro (libro_id, titulo, autor, precioventa, categoria, preciocompra)
+    VALUES (p_libro_id, p_titulo, p_autor, p_precio_venta, p_categoria, p_precio_compra);
+
+    COMMIT;  -- Confirmar la transacción
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Manejar errores
+        RAISE_APPLICATION_ERROR(-20001, 'Error al insertar el libro: ' || SQLERRM);
+END insertar_libro;
+
+create or replace PROCEDURE insertar_nuevos_salarios IS
+BEGIN
+    -- Insertar los nuevos salarios para el siguiente mes solo si no existen ya para ese mes
+    FOR v IN (
+        SELECT 
+            vendedor_id, 
+            sueldo_base,  -- el salario base se mantiene igual
+            ADD_MONTHS(SYSDATE, 1) AS fecha_pago
+        FROM 
+            sueldo_vendedores
+        WHERE 
+            fecha_pago <= SYSDATE  -- Solo considera los sueldos con fecha de pago anterior o igual a la fecha actual
+        AND NOT EXISTS (
+            -- Verificar si ya existe un sueldo registrado para el siguiente mes
+            SELECT 1
+            FROM sueldo_vendedores sv
+            WHERE sv.vendedor_id = vendedor_id 
+            AND sv.fecha_pago = ADD_MONTHS(SYSDATE, 1)
+        )
+    ) LOOP
+        -- Insertar el nuevo salario solo si no existe uno para el siguiente mes
+        INSERT INTO sueldo_vendedores (vendedor_id, sueldo_base, comisiones, fecha_pago)
+        VALUES (v.vendedor_id, v.sueldo_base, 0, v.fecha_pago);
+    END LOOP;
+
+    COMMIT;  -- Confirmar los cambios realizados
+END insertar_nuevos_salarios;
+
+create or replace PROCEDURE registrar_comision_venta_proc(
+    p_venta_id IN Venta.venta_id%TYPE,
+    p_vendedor_id IN Vendedor.vendedor_id%TYPE
+) IS
+    v_monto_venta      detalle_venta.subtotal%TYPE;   -- Monto de la venta
+    v_comision_total   NUMBER(10, 2);                 -- Comisión calculada para cada nivel
+    v_ancestro_id      Vendedor.vendedor_id%TYPE;     -- ID del ancestro en cada nivel
+    v_nivel            NUMBER := 1;                   -- Nivel en el árbol de afiliados
+    v_porcentaje       NUMBER(5, 2);                  -- Porcentaje de comisión según el nivel
+    v_nivel_plus       Vendedor.nivel%type;           -- nombre del nivel (bronce, plata, oro)
+    v_comision_ven     Nivel.comision%type;           -- comision del propio vendedor
+BEGIN
+    -- Obtener el monto total de la venta actualizada
+    SELECT SUM(d.subtotal)
+    INTO v_monto_venta
+    FROM detalle_venta d
+    WHERE d.venta_id = p_venta_id;
+
+    -- Inicializar el ID del ancestro como el vendedor actual
+    SELECT jefe_id, nivel INTO v_ancestro_id, v_nivel_plus
+    FROM Vendedor
+    WHERE vendedor_id = p_vendedor_id;
+    
+    --obtener el la comision del propio vendedor
+    SELECT comision into v_comision_ven from nivel 
+    where nombre = v_nivel_plus;
+    
+    --se suma la comision del propio vendedor
+    UPDATE sueldo_vendedores
+    SET comisiones = NVL(comisiones, 0) + v_monto_venta*(v_comision_ven/100)
+    where vendedor_id = p_vendedor_id and fecha_pago >= sysdate;
+
+    -- Bucle para calcular y asignar comisiones en los primeros 4 niveles de ancestros
+    WHILE v_nivel <= 4 AND v_ancestro_id IS NOT NULL LOOP
+        -- Asignar el porcentaje de comisión según el nivel
+        Select porcentaje into v_porcentaje
+        from comision_jerarquica
+        where nivel_id = v_nivel;
+
+        -- Calcular la comisión total para este nivel de ancestro
+        v_comision_total := v_monto_venta * (v_porcentaje / 100);
+
+        -- Actualizar el sueldo del ancestro con la comisión calculada
+        UPDATE sueldo_vendedores
+        SET comisiones = NVL(comisiones, 0) + v_comision_total
+        WHERE vendedor_id = v_ancestro_id;
+
+        -- Obtener el ID del siguiente ancestro en el nivel superior
+        SELECT jefe_id INTO v_ancestro_id
+        FROM Vendedor
+        WHERE vendedor_id = v_ancestro_id;
+
+        -- Incrementar el nivel para el siguiente ancestro en la jerarquía
+        v_nivel := v_nivel + 1;
+    END LOOP;
+
+END registrar_comision_venta_proc;
+
+create or replace PROCEDURE verificar_inventario_pedido(
+    v_fecha_entrega IN DATE,  -- Fecha de entrega del pedido
+    v_proveedor_id IN Proveedor.proveedor_id%TYPE  -- ID del proveedor para el pedido
+) IS
+    v_libro_id           Inventario.libro_id%TYPE;  -- ID del libro
+    v_existencia         Inventario.existencia%TYPE;  -- Existencia actual en inventario
+    v_precio_compra      Libro.preciocompra%TYPE;  -- Precio de compra del libro
+    v_cantidad_reponer   NUMBER := 90;  -- Cantidad a reponer (fija en 90 unidades)
+    v_total_pedido       NUMBER := 0;  -- Total del pedido
+    v_pedido_id          Pedido.pedido_id%TYPE;  -- ID del pedido
+    v_pedido_existente   NUMBER;  -- Para verificar si ya existe un pedido no confirmado
+BEGIN
+    -- Recorrer todos los libros en inventario
+    FOR libro IN (
+        SELECT i.libro_id, i.existencia
+        FROM Inventario i
+    ) LOOP
+        v_libro_id := libro.libro_id;
+        v_existencia := libro.existencia;
+
+        -- Verificar si la existencia es menor a 30 unidades
+        IF v_existencia < 30 THEN
+            -- Verificar si ya existe un pedido no confirmado para el mismo libro
+            SELECT COUNT(*)
+            INTO v_pedido_existente
+            FROM Detalle_pedido dp
+            JOIN Pedido p ON dp.pedido_id = p.pedido_id
+            WHERE dp.libro_id = v_libro_id
+              AND p.estado = 'Pendiente';
+
+            -- Si no existe un pedido pendiente, crear un nuevo pedido
+            IF v_pedido_existente = 0 THEN
+                BEGIN
+                    -- Insertar el pedido con estado 'Pendiente' y la fecha de entrega proporcionada
+                    INSERT INTO Pedido (fecha_pedido, fecha_entrega, proveedor_id, estado)
+                    VALUES (SYSDATE, v_fecha_entrega, v_proveedor_id, 'Pendiente')
+                    RETURNING pedido_id INTO v_pedido_id;
+
+                    -- Obtener el precio de compra del libro
+                    SELECT l.preciocompra
+                    INTO v_precio_compra
+                    FROM Libro l
+                    WHERE l.libro_id = v_libro_id;
+
+                    -- Insertar un detalle de pedido para cada libro necesario en el pedido
+                    INSERT INTO Detalle_pedido (pedido_id, libro_id, cantidad, subtotal)
+                    VALUES (v_pedido_id, v_libro_id, v_cantidad_reponer, v_precio_compra * v_cantidad_reponer);
+
+                    -- Calcular el total del pedido
+                    v_total_pedido := v_total_pedido + (v_precio_compra * v_cantidad_reponer);
+
+                    -- Actualizar el total del pedido
+                    UPDATE Pedido
+                    SET total = v_total_pedido
+                    WHERE pedido_id = v_pedido_id;
+                END;
+            END IF;
+        END IF;
+    END LOOP;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Manejar cualquier error inesperado
+        RAISE_APPLICATION_ERROR(-20001, 'Error en la verificación del inventario o creación del pedido: ' || SQLERRM);
+END verificar_inventario_pedido;
+
+create or replace PROCEDURE verificar_y_completar_pedidos IS
+    v_pedido_id        Pedido.pedido_id%TYPE;
+    v_libro_id         Detalle_pedido.libro_id%TYPE;
+    v_cantidad         Detalle_pedido.cantidad%TYPE;
+    v_existencia       Inventario.existencia%TYPE;
+BEGIN
+    -- Recorrer los pedidos cuya fecha de entrega es hoy y cuyo estado es 'Pendiente'
+    FOR pedido IN (
+        SELECT p.pedido_id
+        FROM Pedido p
+        WHERE p.fecha_entrega = TRUNC(SYSDATE)
+        AND p.estado = 'Pendiente'
+    ) LOOP
+        v_pedido_id := pedido.pedido_id;
+
+        -- Marcar el pedido como completado
+        UPDATE Pedido
+        SET estado = 'Completado'
+        WHERE pedido_id = v_pedido_id;
+
+        -- Recorrer los detalles del pedido
+        FOR detalle IN (
+            SELECT dp.libro_id, dp.cantidad
+            FROM Detalle_pedido dp
+            WHERE dp.pedido_id = v_pedido_id
+        ) LOOP
+            v_libro_id := detalle.libro_id;
+            v_cantidad := detalle.cantidad;
+
+            -- Obtener la existencia actual en inventario
+            SELECT i.existencia
+            INTO v_existencia
+            FROM Inventario i
+            WHERE i.libro_id = v_libro_id;
+
+            -- Actualizar el inventario sumando la cantidad del pedido
+            UPDATE Inventario
+            SET existencia = v_existencia + v_cantidad
+            WHERE libro_id = v_libro_id;
+        END LOOP;
+    END LOOP;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Manejar errores
+        RAISE_APPLICATION_ERROR(-20001, 'Error al procesar los pedidos: ' || SQLERRM);
+END verificar_y_completar_pedidos;
+

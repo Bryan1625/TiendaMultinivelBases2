@@ -162,6 +162,10 @@ BEGIN
     SET jefe_id = NULL
     WHERE jefe_id = p_vendedor_id;
 
+    update cuenta
+        set estado = 'inactivo'
+        where persona_id = p_vendedor_id;
+
 EXCEPTION
     WHEN OTHERS THEN
         -- En caso de error, revertir la transacción y lanzar el error

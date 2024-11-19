@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
+<?import javafx.scene.text.Text?>
+
+<TabPane fx:id="tabPaneVendedor" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="524.0" prefWidth="600.0" tabClosingPolicy="UNAVAILABLE" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="co.edu.uniquindio.tiendamultinivelbases2.VendedorController">
+  <tabs>
+    <Tab text="Ventas">
+      <content>
+        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+               <children>
+                  <TableView fx:id="tblVentas" layoutX="45.0" layoutY="241.0" prefHeight="223.0" prefWidth="491.0">
+                    <columns>
+                      <TableColumn fx:id="colIdVenta" prefWidth="94.0" text="id venta" />
+                      <TableColumn fx:id="colIdClienteVenta" prefWidth="144.0" text="id cliente" />
+                        <TableColumn fx:id="colIdLibroVenta" prefWidth="79.0" text="id libro" />
+                        <TableColumn fx:id="colCantidadVenta" prefWidth="83.0" text="cantidad" />
+                        <TableColumn fx:id="colTotalVenta" prefWidth="90.0" text="total" />
+                    </columns>
+                  </TableView>
+                  <TextField fx:id="txtLibroVenta" layoutX="45.0" layoutY="49.0" />
+                  <Label layoutX="45.0" layoutY="32.0" text="Id libro:" />
+                  <Label layoutX="45.0" layoutY="95.0" text="Cantidad:" />
+                  <TextField fx:id="txtCantidadVenta" layoutX="45.0" layoutY="112.0" />
+                  <Label layoutX="45.0" layoutY="151.0" text="id Cliente:" />
+                  <TextField fx:id="txtClienteVenta" layoutX="45.0" layoutY="168.0" />
+                  <Button fx:id="btnCrearVenta" layoutX="257.0" layoutY="168.0" mnemonicParsing="false" onAction="#crearVenta" prefHeight="25.0" prefWidth="82.0" text="Crear venta" />
+                  <TextField fx:id="txtIdVenta" layoutX="234.0" layoutY="49.0" />
+                  <Label layoutX="234.0" layoutY="32.0" text="Id venta:" />
+               </children></AnchorPane>
+      </content>
+    </Tab>
+    <Tab text="Clientes">
+      <content>
+        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+               <children>
+                  <TableView fx:id="tblClientes" layoutX="33.0" layoutY="248.0" prefHeight="218.0" prefWidth="504.0">
+                    <columns>
+                      <TableColumn fx:id="colIdCliente" prefWidth="124.0" text="id Cliente" />
+                      <TableColumn fx:id="colNombreCliente" prefWidth="115.0" text="Nombre" />
+                        <TableColumn fx:id="colApellidoCliente" prefWidth="132.0" text="Apellido" />
+                        <TableColumn fx:id="colTelefonoCliente" prefWidth="132.0" text="Telefono" />
+                    </columns>
+                  </TableView>
+                  <TextField fx:id="txtIdCliente" layoutX="33.0" layoutY="66.0" />
+                  <Label layoutX="33.0" layoutY="49.0" text="Id cliente:" />
+                  <Label layoutX="33.0" layoutY="106.0" text="Nombre:" />
+                  <TextField fx:id="txtNombreCiente" layoutX="33.0" layoutY="123.0" />
+                  <Label layoutX="35.0" layoutY="166.0" text="Cantidad compras:" />
+                  <TextField fx:id="txtCantidadCompras" layoutX="33.0" layoutY="183.0" />
+                  <Button fx:id="btnBuscarClienteNombre" layoutX="248.0" layoutY="183.0" mnemonicParsing="false" onAction="#buscarClientePorNombre" text="Buscar por nombre" />
+                  <Button fx:id="btnBuscarClienteId" layoutX="388.0" layoutY="183.0" mnemonicParsing="false" onAction="#buscarClientePorId" text="Buscar por id" />
+               </children></AnchorPane>
+      </content>
+    </Tab>
+      <Tab text="Inventario">
+        <content>
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+               <children>
+                  <TableView fx:id="tblInventario" layoutX="163.0" layoutY="21.0" prefHeight="454.0" prefWidth="275.0">
+                    <columns>
+                      <TableColumn fx:id="colIdLibroInventario" prefWidth="135.0" text="id Libro" />
+                      <TableColumn fx:id="colExistenciaInventario" prefWidth="138.0" text="Existencia" />
+                    </columns>
+                  </TableView>
+               </children>
+            </AnchorPane>
+        </content>
+      </Tab>
+      <Tab text="Afiliados">
+        <content>
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+               <children>
+                  <TableView fx:id="tblAfiliados" layoutX="34.0" layoutY="151.0" prefHeight="330.0" prefWidth="532.0">
+                    <columns>
+                      <TableColumn fx:id="colIdVendedorAfiliado" prefWidth="137.0" text="id Vendedor" />
+                      <TableColumn fx:id="colNombreVendedorAfiliado" prefWidth="127.0" text="Nombre" />
+                        <TableColumn fx:id="colFechaAfiliado" prefWidth="126.0" text="fecha nacimiento" />
+                        <TableColumn fx:id="colJefeAfiliado" prefWidth="141.0" text="id Jefe" />
+                    </columns>
+                  </TableView>
+                  <TextField fx:id="txtIdVendedorAfiliados" layoutX="34.0" layoutY="42.0" />
+                  <Label layoutX="34.0" layoutY="25.0" text="id vendedor:" />
+                  <Label layoutX="34.0" layoutY="81.0" text="nombre:" />
+                  <TextField fx:id="txtNombreVendedorAfiliados" layoutX="34.0" layoutY="98.0" />
+                  <DatePicker fx:id="dpFechaNacimientoAfiliados" layoutX="219.0" layoutY="42.0" />
+                  <Label layoutX="219.0" layoutY="25.0" text="fecha nacimiento:" />
+                  <Button fx:id="btnCrearAfilidado" layoutX="306.0" layoutY="98.0" mnemonicParsing="false" onAction="#crearAfiliado" text="Crear afiliado" />
+               </children>
+            </AnchorPane>
+        </content>
+      </Tab>
+      <Tab text="Cuenta">
+        <content>
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+               <children>
+                  <TextField fx:id="txtIdVendedor" editable="false" layoutX="158.0" layoutY="118.0" prefHeight="25.0" prefWidth="285.0" />
+                  <Text layoutX="131.0" layoutY="58.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Informacion personal" wrappingWidth="339.13671875">
+                     <font>
+                        <Font size="34.0" />
+                     </font>
+                  </Text>
+                  <Label layoutX="158.0" layoutY="101.0" text="id:" />
+                  <TextField fx:id="txtNombreVendedor" layoutX="158.0" layoutY="184.0" prefHeight="25.0" prefWidth="285.0" />
+                  <Label layoutX="158.0" layoutY="167.0" text="nombre:" />
+                  <DatePicker fx:id="dpFechaNacimiento" layoutX="158.0" layoutY="248.0" prefHeight="25.0" prefWidth="286.0" />
+                  <Label layoutX="158.0" layoutY="231.0" text="fecha nacimiento:" />
+                  <Button fx:id="btnActualizarDatos" layoutX="249.0" layoutY="317.0" mnemonicParsing="false" onAction="#actualizarDatos" text="Actualizar Datos" />
+                  <Button fx:id="btnDarseDeBaja" layoutX="257.0" layoutY="363.0" mnemonicParsing="false" onAction="#darseDeBaja" text="Darse de baja" />
+               </children>
+            </AnchorPane>
+        </content>
+      </Tab>
+  </tabs>
+</TabPane>

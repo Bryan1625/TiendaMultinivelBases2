@@ -50,7 +50,7 @@ public class VendedorDAO {
     // Obtener todos los vendedores
     public List<Vendedor> obtenerTodosLosVendedores() {
         List<Vendedor> vendedores = new ArrayList<>();
-        String sql = "SELECT * FROM Vendedor";
+        String sql = "SELECT * FROM Vendedor where estado = 'Activo'";
 
         try (Connection conn = DataBaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);

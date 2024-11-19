@@ -40,7 +40,7 @@ public class CuentaServiceImpl implements CuentaService {
     }
 
     @Override
-    public String login(String usuario, String contrasenia) {
+    public Cuenta login(String usuario, String contrasenia) {
         return cuentaDAO.login(usuario, contrasenia);
     }
 

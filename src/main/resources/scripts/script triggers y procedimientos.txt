@@ -178,7 +178,7 @@ create or replace PROCEDURE insertar_afiliado(
 ) IS
 BEGIN
     INSERT INTO Vendedor (vendedor_id, nombre, fecha_nacimiento, jefe_id, nivel, estado)
-    VALUES (p_vendedor_id, p_nombre, p_fecha_nacimiento, p_jefe_id, 'bronce', p_estado);
+    VALUES (p_vendedor_id, p_nombre, p_fecha_nacimiento, p_jefe_id, 'Bronce', p_estado);
 
 EXCEPTION
     WHEN OTHERS THEN

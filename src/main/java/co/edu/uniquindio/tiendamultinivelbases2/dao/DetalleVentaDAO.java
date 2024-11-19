@@ -11,15 +11,17 @@ public class DetalleVentaDAO {
 
     // Método para insertar un nuevo detalle de venta
     public boolean insertarDetalleVenta(DetalleVenta detalleVenta) {
-        String sql = "INSERT INTO detalle_venta (venta_id, libro_id, cantidad, subtotal) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO detalle_venta (venta_id, cliente_id, vendedor_id, libro_id, cantidad, subtotal) VALUES (?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DataBaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, detalleVenta.getVentaId());     // ID de la venta
-            stmt.setInt(2, detalleVenta.getLibroId());     // ID del libro
-            stmt.setInt(3, detalleVenta.getCantidad());    // Cantidad de libros vendidos
-            stmt.setDouble(4, detalleVenta.getSubtotal()); // Subtotal de la venta
+            stmt.setInt(2,detalleVenta.getClienteId());
+            stmt.setInt(3, detalleVenta.getVendedorId());
+            stmt.setInt(4, detalleVenta.getLibroId());     // ID del libro
+            stmt.setInt(5, detalleVenta.getCantidad());    // Cantidad de libros vendidos
+            stmt.setDouble(6, detalleVenta.getSubtotal()); // Subtotal de la venta
 
             int filasAfectadas = stmt.executeUpdate();
             return filasAfectadas > 0;
@@ -108,6 +110,31 @@ public class DetalleVentaDAO {
                 int libroId = rs.getInt("libro_id");
                 int clienteId = rs.getInt("cliente_id");  // Agregar clienteId
                 int vendedorId = rs.getInt("vendedor_id");  // Agregar vendedorId
+                int cantidad = rs.getInt("cantidad");
+                double subtotal = rs.getDouble("subtotal");
+
+                detallesVenta.add(new DetalleVenta(ventaId, clienteId, vendedorId, libroId, cantidad, subtotal));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return detallesVenta;
+    }
+
+    public List<DetalleVenta> obtenerDetallesVentaPorVendedor(int vendedorId) {
+        List<DetalleVenta> detallesVenta = new ArrayList<>();
+        String sql = "SELECT * FROM detalle_venta WHERE vendedor_id = ?";
+
+        try (Connection conn = DataBaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, vendedorId); // ID del vendedor
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                int ventaId = rs.getInt("venta_id");
+                int libroId = rs.getInt("libro_id");
+                int clienteId = rs.getInt("cliente_id");
                 int cantidad = rs.getInt("cantidad");
                 double subtotal = rs.getDouble("subtotal");
 

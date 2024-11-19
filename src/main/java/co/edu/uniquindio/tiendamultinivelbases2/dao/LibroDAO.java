@@ -121,4 +121,21 @@ public class LibroDAO {
         }
         return false;
     }
+
+    public double obtenerPrecioVentaPorId(int libroId) {
+        String sql = "SELECT precioventa FROM libro WHERE libro_id = ?";
+        try (Connection conn = DataBaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, libroId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getDouble("precioventa");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
 }

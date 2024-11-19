@@ -11,7 +11,7 @@ public interface CuentaService{
     boolean actualizarEstado(int cuentaId, String nuevoEstado);
 
     // Método de login: retorna el tipo de usuario si es válido
-    String login(String usuario, String contrasenia);
+    Cuenta login(String usuario, String contrasenia);
 
     // Método para obtener el tipo de usuario
     String obtenerTipoUsuario(int cuentaId);

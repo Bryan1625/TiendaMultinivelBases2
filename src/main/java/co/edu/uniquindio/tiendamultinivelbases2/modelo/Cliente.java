@@ -26,6 +26,14 @@ public class Cliente {
         this.estado = estado;
     }
 
+    public Cliente(int clienteId, String nombreCliente, String apellido, String email, String telefono) {
+        this.clienteId = clienteId;
+        this.nombre = nombreCliente;
+        this.apellido = apellido;
+        this.email = email;
+        this.telefono = telefono;
+    }
+
     public int getClienteId() {
         return clienteId;
     }

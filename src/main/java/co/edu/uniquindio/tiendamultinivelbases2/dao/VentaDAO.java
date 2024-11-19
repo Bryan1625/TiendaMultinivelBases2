@@ -122,11 +122,12 @@ public class VentaDAO {
         return ventas;
     }
     public boolean insertarVenta(Venta venta) {
-        String sql = "INSERT INTO Venta (fecha, estado, total) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO Venta (venta_id, fecha, estado, total) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = DataBaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
+            stmt.setInt(1,venta.getVentaId());
             stmt.setDate(2, venta.getFecha());
             stmt.setString(3, venta.getEstado());
             stmt.setDouble(4, venta.getTotal());

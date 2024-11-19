@@ -21,7 +21,7 @@ public class InventarioDAO {
 
             while (rs.next()) {
                 int libroId = rs.getInt("libro_id");
-                int cantidad = rs.getInt("cantidad");
+                int cantidad = rs.getInt("existencia");
 
                 inventarios.add(new Inventario(libroId, cantidad));
             }

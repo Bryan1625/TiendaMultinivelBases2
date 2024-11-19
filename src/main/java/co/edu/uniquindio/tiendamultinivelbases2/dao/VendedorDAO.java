@@ -99,6 +99,8 @@ public class VendedorDAO {
         return vendedor;
     }
 
+
+
     // Desvincular un vendedor
     public boolean desvincularVendedor(int vendedorId) {
         String sql = "{call desvincular_vendedor(?)}";  // Llamada al procedimiento almacenado
@@ -113,5 +115,27 @@ public class VendedorDAO {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public boolean actualizarVendedor(int vendedorId, String nombre, Date fechaNacimiento) {
+        String sql = "UPDATE vendedor SET nombre = ?, fecha_nacimiento = ? WHERE vendedor_id = ?";
+
+        try (Connection conn = DataBaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            // Establecer los parámetros en la consulta SQL
+            stmt.setString(1, nombre);
+            stmt.setDate(2, fechaNacimiento);
+            stmt.setInt(3, vendedorId);
+
+            // Ejecutar la actualización
+            int filasAfectadas = stmt.executeUpdate();
+            return filasAfectadas > 0; // Si se actualizó al menos un vendedor, el proceso fue exitoso
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false; // Si hubo algún error o no se actualizó ningún registro
     }
 }

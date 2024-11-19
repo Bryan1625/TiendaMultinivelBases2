@@ -51,8 +51,9 @@ public class CuentaDAO {
     }
 
     // Método para realizar el login
-    public String login(String usuario, String contrasenia) {
-        String sql = "SELECT tipo_usuario FROM Cuenta WHERE usuario = ? AND contrasenia = ? AND estado = 'activo'";
+    public Cuenta login(String usuario, String contrasenia) {
+        Cuenta cuenta = new Cuenta();
+        String sql = "SELECT tipo_usuario, persona_id FROM Cuenta WHERE usuario = ? AND contrasenia = ? AND estado = 'activo'";
 
         try (Connection conn = DataBaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -63,7 +64,9 @@ public class CuentaDAO {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                return rs.getString("tipo_usuario");
+                cuenta.setTipoUsuario(rs.getString("tipo_usuario"));
+                cuenta.setPersonaId(Integer.parseInt(rs.getString("persona_id")));
+                return cuenta;
             }
         } catch (SQLException e) {
             e.printStackTrace();

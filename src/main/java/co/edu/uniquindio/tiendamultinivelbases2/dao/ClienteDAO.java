@@ -155,5 +155,49 @@ public class ClienteDAO {
         }
         return false;
     }
+    public int obtenerCantidadVentasPorCliente(int clienteId) {
+        String sql = "SELECT COUNT(DISTINCT venta_id) AS cantidad_ventas FROM vista_ventas WHERE cliente_id = ?";
+        int cantidadVentas = 0;
 
+        try (Connection conn = DataBaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, clienteId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                cantidadVentas = rs.getInt("cantidad_ventas");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return cantidadVentas;
+    }
+
+    public List<Cliente> buscarClientesPorNombre(String nombre) {
+        List<Cliente> clientesEncontrados = new ArrayList<>();
+        String sql = "SELECT cliente_id, nombre, apellido, email, telefono FROM cliente WHERE nombre like ? and estado = 'activo'";
+
+        try (Connection conn = DataBaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            // Usar '%' para buscar por coincidencias parciales
+            stmt.setString(1, nombre);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                int clienteId = rs.getInt("cliente_id");
+                String nombreCliente = rs.getString("nombre");
+                String apellidoCliente = rs.getString("apellido");
+                String email = rs.getString("email");
+                String telefono = rs.getString("telefono");
+
+                Cliente cliente = new Cliente(clienteId, nombreCliente, apellidoCliente,  email, telefono);
+                clientesEncontrados.add(cliente);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return clientesEncontrados;
+    }
 }
